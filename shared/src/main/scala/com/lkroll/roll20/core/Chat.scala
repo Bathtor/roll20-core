@@ -25,6 +25,25 @@
 package com.lkroll.roll20.core
 
 sealed trait ChatCommand extends Renderable {
+  def apiType: Option[ChatType.ChatType];
+  def message(content: String): ChatOutMessage = CommandMessage(this, content);
+}
+
+object ChatType extends Enumeration {
+  type ChatType = Value;
+
+  val general, rollresult, gmrollresult, emote, whisper, desc, api = Value;
+}
+
+sealed trait ChatOutMessage {
+  def render: String;
+}
+
+final case class SimpleMessage(message: String) extends ChatOutMessage {
+  override def render: String = message;
+}
+final case class CommandMessage(cmd: ChatCommand, content: String) extends ChatOutMessage {
+  override def render: String = s"${cmd.render} $content";
 }
 
 object Chat {
@@ -70,30 +89,37 @@ object Chat {
     val fa = AutocalcExprs.FieldAccess(f);
 
     override def render: String = s"${fa.render} ";
+    def apiType: Option[ChatType.ChatType] = None;
   }
 
   case object Default extends ChatCommand {
     override def render: String = " ";
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
   case class API(command: String, args: String) extends ChatCommand {
     override def render: String = s"!$command $args";
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.api);
   }
 
   case object GM extends ChatCommand {
     override def render: String = "/w gm ";
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.whisper);
   }
 
   case class Whisper(target: String) extends ChatCommand {
     override def render: String = s"""/w "${target}" """;
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.whisper);
   }
 
   case object Emote extends ChatCommand {
     override def render: String = "/em ";
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.emote);
   }
 
   case object OutOfCharacter extends ChatCommand {
     override def render: String = "/ooc ";
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
   case class SpecialEffects(`type`: String, colour: String, sourceId: String, targetId: Option[String] = None) extends ChatCommand {
@@ -101,18 +127,22 @@ object Chat {
       case Some(tid) => "/fx ${type}-${colour} ${sourceId} ${tid}";
       case None      => "/fx ${type}-${colour} ${sourceId}";
     }
+    def apiType: Option[ChatType.ChatType] = None;
   }
 
   case object Description extends ChatCommand {
     override def render: String = "/desc ";
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.desc);
   }
 
   case class SpeakAs(target: String) extends ChatCommand {
     override def render: String = s"""/as "${target}" """;
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
   case class EmoteAs(target: String) extends ChatCommand {
     override def render: String = s"""/emas "${target}" """;
+    def apiType: Option[ChatType.ChatType] = Some(ChatType.emote);
   }
 }
 

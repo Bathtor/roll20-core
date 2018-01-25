@@ -32,6 +32,8 @@ trait CoreImplicits {
   implicit def seqToExpr[T](s: Seq[AutocalcExpression[T]]): AutocalcExpression[T] = AutocalcExprs.SeqExpr(s);
   implicit def fieldToAuto[T](f: FieldLike[T]): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f);
 
+  implicit def str2ChatMessage(s: String): ChatOutMessage = SimpleMessage(s);
+
   implicit def autocalcToDiceParam(x: AutocalcExpression[Int]): DiceParameter = DiceParams.AutocalcParameter(x);
   implicit def intToDiceParam(n: Int): DiceParameter = DiceParams.ArithmeticParameter(n);
   implicit class DiceNumInt(n: Int) {
