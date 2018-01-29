@@ -47,12 +47,13 @@ trait CoreImplicits {
     def dF(): DiceExpression = DiceExprs.FateRoll(n);
   }
   implicit def modLackCPToDefault[Out](mlcp: RollModifiers.ModifierLackingCP[Out]): Out = mlcp(ComparePoints.DefaultCP);
-  implicit def diceToRoll(dice: DiceExpression): RollExprs.Dice = RollExprs.Dice(dice, None);
+  implicit def diceToRoll(dice: DiceExpression): RollExprs.Dice = RollExprs.Dice(dice);
   implicit def arithToAuto[T: Numeric](expr: ArithmeticExpression[T]): AutocalcExpression[T] = AutocalcExprs.Arithmetic(expr);
   implicit def autoToArith[T: Numeric](expr: AutocalcExpression[T]): ArithmeticExpression[T] = AutocalcExprs.NumericExpr(expr);
   //implicit def fieldToArith[T: Numeric](f: FieldLike[T]): ArithmeticExpression[T] = fieldToExpr(f);
   //implicit def rollToArith(roll: RollExpression): RollExprs.Arith = RollExprs.Arith(roll);
   implicit def arithToRoll[T: Numeric](expr: ArithmeticExpression[T]): RollExpression[T] = RollExprs.Math(expr);
+  implicit def numToRoll[T: Numeric](num: T): RollExpression[T] = arithToRoll(num);
 
   def ceil[T: Numeric](expr: ArithmeticExpression[T]) = Arith.ceil(expr);
   def floor[T: Numeric](expr: ArithmeticExpression[T]) = Arith.floor(expr);

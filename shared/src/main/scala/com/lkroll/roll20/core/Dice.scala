@@ -31,7 +31,7 @@ sealed trait DiceExpression extends Renderable {
   import Arith._
   import RollExprs.{ Arith => RArith, Dice => RDice, _ }
 
-  def ++(mod: RollModifier): IntRollExpression = RollExprs.WithMods(this, mod, None);
+  def ++(mod: RollModifier): IntRollExpression = RollExprs.WithMods(this, mod);
 
   def <(target: Int): IntRollExpression = this ++ TargetRoll(LeqCP(target));
   def >(target: Int): IntRollExpression = this ++ TargetRoll(GeqCP(target));
@@ -54,7 +54,7 @@ sealed trait DiceExpression extends Renderable {
 
   override def toString(): String = this.render;
 
-  def arith: ArithmeticExpression[Int] = RArith(RDice(this, None));
+  def arith: ArithmeticExpression[Int] = RArith(RDice(this));
 
   def +(other: ArithmeticExpression[Int]): RollExpression[Int] = Math(PlusExpr(this.arith, other));
   def -(other: ArithmeticExpression[Int]): RollExpression[Int] = Math(MinusExpr(this.arith, other));
@@ -118,7 +118,7 @@ object Dice {
   import CoreImplicits._;
   import DiceExprs._
 
-  val unit = BasicRoll(0, 0);
+  val unit = BasicRoll(1, 0);
   val d4 = BasicRoll(1, 4);
   val d6 = BasicRoll(1, 6);
   val d8 = BasicRoll(1, 8);

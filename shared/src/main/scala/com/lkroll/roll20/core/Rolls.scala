@@ -36,15 +36,16 @@ sealed trait RollExpression[T] extends Renderable {
   def *(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) * other;
   def %(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) % other;
   def as[O: Numeric](implicit n: Numeric[T]) = Arith(this).as[O];
+  
   // special version for common case
-
   def +(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) + other.arith();
   def -(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) - other.arith();
   def /(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) / other.arith();
   def *(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) * other.arith();
   def %(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) % other.arith();
 
-  def &(option: RollOption) = WithOption(this, option)
+  def &(option: RollOption) = WithOption(this, option);
+  def label(s: String) = LabelledRoll(this, s);
 }
 
 sealed trait IntRollExpression extends RollExpression[Int] {
@@ -75,22 +76,14 @@ sealed trait IntRollExpression extends RollExpression[Int] {
 
 object RollExprs {
 
-  case class Dice(dice: DiceExpression, label: Option[String]) extends IntRollExpression {
-    override def render: String = label match {
-      case Some(l) => s"${dice.render}[$l]"
-      case None    => dice.render
-    }
-    override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, mod, label);
-    def label(l: String): Dice = Dice(dice, Some(l));
+  case class Dice(dice: DiceExpression) extends IntRollExpression {
+    override def render: String = dice.render
+    override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, mod);
   }
 
-  case class WithMods(dice: DiceExpression, mod: RollModifier, label: Option[String]) extends IntRollExpression {
-    override def render: String = label match {
-      case Some(l) => s"${dice.render}${mod.render}[$l]";
-      case None    => s"${dice.render}${mod.render}";
-    }
-    override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, this.mod ++ mod, label);
-    def label(l: String): WithMods = WithMods(dice, mod, Some(l));
+  case class WithMods(dice: DiceExpression, mod: RollModifier) extends IntRollExpression {
+    override def render: String = s"${dice.render}${mod.render}";
+    override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, this.mod ++ mod);
   }
 
   case class Group(exprs: Seq[IntRollExpression]) extends IntRollExpression {
@@ -125,10 +118,16 @@ object RollExprs {
     override def render: String = s"${expr.render} ${option.render}";
   }
 
+  case class LabelledRoll[T](roll: RollExpression[T], label: String) extends RollExpression[T] {
+    override def render: String = s"${roll.render}[$label]";
+  }
+  
+  case class Native[T](expr: String) extends RollExpression[T] {
+    override def render: String = expr;
+  }
 }
 
-sealed trait RollOption extends Renderable {
-}
+sealed trait RollOption extends Renderable;
 
 object RollOptions {
   case object NoError extends RollOption {
@@ -158,7 +157,7 @@ object Rolls {
   }
 
   case class InlineRoll[T](expr: RollExpression[T]) extends Roll {
-    override def render: String = s"[[ ${expr.render} ]]";
+    override def render: String = s"[[${expr.render}]]";
   }
 
   case class TemplateRoll(chat: ChatCommand, template: TemplateApplication) extends Roll {

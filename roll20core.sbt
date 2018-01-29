@@ -23,7 +23,7 @@ lazy val root = project.in(file(".")).
 lazy val roll20Core = crossProject.in(file(".")).
   settings(
     name := "Roll20 Core",
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.+" % "test",
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.0.+" % "test",
     EclipseKeys.useProjectId := true,
     EclipseKeys.eclipseOutput := Some("./etarget")
   ).
