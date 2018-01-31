@@ -26,7 +26,7 @@ package com.lkroll.roll20.core
 
 trait RollQuery[T] extends Renderable {
   def expr(implicit ev: T =:= Int) = RollExprs.WithIntQuery(this.asInstanceOf[RollQuery[Int]]);
-  def arith(implicit ev: T =:= Int) = RollExprs.Arith(expr(ev));
+  def arith(implicit ev: T =:= Int) = Arith.RollArith(expr(ev));
 }
 
 case class InputQuery[T](name: String, defaultValue: Option[T]) extends RollQuery[T] {

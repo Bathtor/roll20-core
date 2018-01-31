@@ -24,8 +24,9 @@
  */
 package com.lkroll.roll20.core
 
-trait ArithmeticExpression[T] extends Renderable {
-  import Arith._
+sealed trait ArithmeticExpression[T] extends Renderable {
+  import Arith._;
+  import AccessTransformation._;
 
   def +(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = PlusExpr[T](this, other);
   def -(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = MinusExpr[T](this, other);
@@ -35,40 +36,72 @@ trait ArithmeticExpression[T] extends Renderable {
 
   def paren(implicit n: Numeric[T]) = Parenthesised(this);
   def as[N: Numeric](): ArithmeticExpression[N] = CastExpr[T, N](this);
+
+  def transformForAccess(f: AccessTransformer): ArithmeticExpression[T];
+  def forCharacter(characterName: String): ArithmeticExpression[T] = transformForAccess(Character(characterName));
+  def forSelected(): ArithmeticExpression[T] = transformForAccess(Selected);
+  def forTarget(): ArithmeticExpression[T] = transformForAccess(Targeted);
+  def forTarget(targetName: String): ArithmeticExpression[T] = transformForAccess(Target(targetName));
 }
 
 object Arith {
+  import AccessTransformation.AccessTransformer;
 
   case class Literal[T: Numeric](t: T) extends ArithmeticExpression[T] {
     override def render: String = t.toString();
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] = this;
   }
 
   case class Parenthesised[T: Numeric](expr: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"(${expr.render})";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] = Parenthesised(expr.transformForAccess(f));
   }
 
   case class PlusExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"${left.render}+${right.render}";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      PlusExpr(left.transformForAccess(f), right.transformForAccess(f));
   }
 
   case class MinusExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"${left.render}-${right.render}";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      MinusExpr(left.transformForAccess(f), right.transformForAccess(f));
   }
 
   case class DivExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"${left.render}/${right.render}";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      DivExpr(left.transformForAccess(f), right.transformForAccess(f));
   }
 
   case class MultExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"${left.render}*${right.render}";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      MultExpr(left.transformForAccess(f), right.transformForAccess(f));
   }
 
   case class ModExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"${left.render}%${right.render}";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      ModExpr(left.transformForAccess(f), right.transformForAccess(f));
   }
 
   case class RoundingExpr[T: Numeric](function: RoundingFunction, expr: ArithmeticExpression[T]) extends ArithmeticExpression[Int] {
     def render: String = s"${function.name}(${expr.render})";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[Int] =
+      RoundingExpr(function, expr.transformForAccess(f));
+  }
+
+  case class AutoArith[T](expr: AutocalcExpression[T]) extends ArithmeticExpression[T] {
+    override def render: String = expr.render;
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      AutoArith(expr.transformForAccess(f));
+  }
+
+  case class RollArith[T: Numeric](expr: RollExpression[T]) extends ArithmeticExpression[T] {
+    override def render: String = expr.render;
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] = this;
   }
 
   def ceil[T: Numeric](expr: ArithmeticExpression[T]) = RoundingExpr[T](RoundingFunction.Ceil, expr);
@@ -77,11 +110,15 @@ object Arith {
 
   case class AbsExpr[T: Numeric](expr: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"abs(${expr.render})";
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      AbsExpr(expr.transformForAccess(f));
   }
 
   def abs[T: Numeric](expr: ArithmeticExpression[T]) = AbsExpr(expr);
 
   case class CastExpr[I, O](expr: ArithmeticExpression[I]) extends ArithmeticExpression[O] {
     def render: String = expr.render;
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[O] =
+      CastExpr[I, O](expr.transformForAccess(f));
   }
 }

@@ -28,7 +28,9 @@ package com.lkroll.roll20.core
 import scala.collection.Seq
 
 sealed trait RollExpression[T] extends Renderable {
-  import RollExprs._
+  import RollExprs._;
+  import Arith.{ RollArith => Arith };
+  import AccessTransformation._;
 
   def +(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) + other;
   def -(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) - other;
@@ -36,22 +38,30 @@ sealed trait RollExpression[T] extends Renderable {
   def *(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) * other;
   def %(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) % other;
   def as[O: Numeric](implicit n: Numeric[T]) = Arith(this).as[O];
-  
+  def arith(implicit n: Numeric[T]): ArithmeticExpression[T] = Arith(this);
+
   // special version for common case
-  def +(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) + other.arith();
-  def -(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) - other.arith();
-  def /(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) / other.arith();
-  def *(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) * other.arith();
-  def %(other: FieldLike[T])(implicit n: Numeric[T]) = Arith(this) % other.arith();
+  def +(other: FieldLike[T])(implicit n: Numeric[T], labelFields: LabelFields) = Arith(this) + other.arith();
+  def -(other: FieldLike[T])(implicit n: Numeric[T], labelFields: LabelFields) = Arith(this) - other.arith();
+  def /(other: FieldLike[T])(implicit n: Numeric[T], labelFields: LabelFields) = Arith(this) / other.arith();
+  def *(other: FieldLike[T])(implicit n: Numeric[T], labelFields: LabelFields) = Arith(this) * other.arith();
+  def %(other: FieldLike[T])(implicit n: Numeric[T], labelFields: LabelFields) = Arith(this) % other.arith();
 
   def &(option: RollOption) = WithOption(this, option);
   def label(s: String) = LabelledRoll(this, s);
+
+  def transformForAccess(f: AccessTransformer): RollExpression[T];
+  def forCharacter(characterName: String): RollExpression[T] = transformForAccess(Character(characterName));
+  def forSelected(): RollExpression[T] = transformForAccess(Selected);
+  def forTarget(): RollExpression[T] = transformForAccess(Targeted);
+  def forTarget(targetName: String): RollExpression[T] = transformForAccess(Target(targetName));
 }
 
 sealed trait IntRollExpression extends RollExpression[Int] {
-  import ComparePoints._
-  import RollModifiers._
-  import DiceExprs._
+  import ComparePoints._;
+  import RollModifiers._;
+  import DiceExprs._;
+  import AccessTransformation.AccessTransformer;
 
   def ++(mod: RollModifier): IntRollExpression;
   def <(target: Int): IntRollExpression = this ++ TargetRoll(LeqCP(target));
@@ -72,58 +82,69 @@ sealed trait IntRollExpression extends RollExpression[Int] {
   def s(): IntRollExpression = this ++ SortAscRoll;
   def sa(): IntRollExpression = this ++ SortAscRoll;
   def sd(): IntRollExpression = this ++ SortDescRoll;
+  override def transformForAccess(f: AccessTransformer): RollExpression[Int] = this.transformForAccessIRE(f);
+  protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression;
 }
 
 object RollExprs {
+  import AccessTransformation.AccessTransformer;
 
   case class Dice(dice: DiceExpression) extends IntRollExpression {
     override def render: String = dice.render
     override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, mod);
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
   }
 
   case class WithMods(dice: DiceExpression, mod: RollModifier) extends IntRollExpression {
     override def render: String = s"${dice.render}${mod.render}";
     override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, this.mod ++ mod);
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
   }
 
   case class Group(exprs: Seq[IntRollExpression]) extends IntRollExpression {
     override def render: String = exprs.map(_.render).mkString("{", ",", "}");
     def ++(mod: RollModifier): IntRollExpression = GroupWithMods(exprs, mod);
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
+      Group(exprs.map(_.transformForAccessIRE(f)));
   }
 
   case class GroupWithMods(exprs: Seq[IntRollExpression], mod: RollModifier) extends IntRollExpression {
     override def render: String = exprs.map(_.render).mkString("{", ",", "}") + mod.render;
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(exprs, this.mod ++ mod);
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
+      GroupWithMods(exprs.map(_.transformForAccessIRE(f)), mod);
   }
 
   case class Inline(roll: Rolls.InlineRoll[Int]) extends IntRollExpression {
     override def render: String = roll.render;
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(Seq(this), mod);
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = Inline(roll.transformForAccess(f));
   }
 
   case class Math[T: Numeric](expr: ArithmeticExpression[T]) extends RollExpression[T] {
     override def render: String = expr.render;
-  }
-
-  case class Arith[T: Numeric](expr: RollExpression[T]) extends ArithmeticExpression[T] {
-    override def render: String = expr.render;
+    override def transformForAccess(f: AccessTransformer): RollExpression[T] = Math(expr.transformForAccess(f));
   }
 
   case class WithIntQuery(query: RollQuery[Int]) extends IntRollExpression {
     override def render: String = query.render;
     override def ++(mod: RollModifier): IntRollExpression = ???; // not allowed here
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
   }
 
   case class WithOption[T](expr: RollExpression[T], option: RollOption) extends RollExpression[T] {
     override def render: String = s"${expr.render} ${option.render}";
+    override def transformForAccess(f: AccessTransformer): RollExpression[T] = WithOption(expr.transformForAccess(f), option);
   }
 
-  case class LabelledRoll[T](roll: RollExpression[T], label: String) extends RollExpression[T] {
-    override def render: String = s"${roll.render}[$label]";
+  case class LabelledRoll[T](expr: RollExpression[T], label: String) extends RollExpression[T] {
+    override def render: String = s"${expr.render}[$label]";
+    override def transformForAccess(f: AccessTransformer): RollExpression[T] = LabelledRoll(expr.transformForAccess(f), label);
   }
-  
+
   case class Native[T](expr: String) extends RollExpression[T] {
     override def render: String = expr;
+    override def transformForAccess(f: AccessTransformer): RollExpression[T] = ???; // Can't inspect native rolls
   }
 }
 
@@ -148,20 +169,39 @@ object RollOptions {
 }
 
 sealed trait Roll extends Renderable {
+  import AccessTransformation._;
+
+  type RollType <: Roll;
+
+  def transformForAccess(f: AccessTransformer): RollType;
+  def forCharacter(characterName: String): RollType = transformForAccess(Character(characterName));
+  def forSelected(): RollType = transformForAccess(Selected);
+  def forTarget(): RollType = transformForAccess(Targeted);
+  def forTarget(targetName: String): RollType = transformForAccess(Target(targetName));
 }
 
 object Rolls {
+  import AccessTransformation.AccessTransformer;
 
   case class SimpleRoll[T](expr: RollExpression[T]) extends Roll {
+    override type RollType = SimpleRoll[T];
+
     override def render: String = s"/roll ${expr.render}";
+    override def transformForAccess(f: AccessTransformer): RollType = SimpleRoll(expr.transformForAccess(f));
   }
 
   case class InlineRoll[T](expr: RollExpression[T]) extends Roll {
+    override type RollType = InlineRoll[T];
+
     override def render: String = s"[[${expr.render}]]";
+    override def transformForAccess(f: AccessTransformer): RollType = InlineRoll(expr.transformForAccess(f));
   }
 
   case class TemplateRoll(chat: ChatCommand, template: TemplateApplication) extends Roll {
+    override type RollType = TemplateRoll;
+
     override def render: String = s"${chat.render}${template.render}";
+    override def transformForAccess(f: AccessTransformer): RollType = this; // TODO maybe carry this through to TemplateApplication
   }
 }
 

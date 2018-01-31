@@ -40,3 +40,9 @@ case object UIContext extends RenderingContext {
   def mapAccess(s: String): String = s;
   def mapSelect(s: String): String = s;
 }
+
+case object APIContext extends RenderingContext {
+  def mapAccess(rowId: String, s: String): String = s;
+  def mapAccess(s: String): String = s;
+  def mapSelect(s: String): String = s;
+}

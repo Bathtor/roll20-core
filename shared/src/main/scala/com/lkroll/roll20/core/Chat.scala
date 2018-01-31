@@ -86,7 +86,7 @@ object Chat {
   }
 
   case class FromField(f: FieldLike[ChatCommand]) extends ChatCommand {
-    val fa = AutocalcExprs.FieldAccess(f);
+    val fa = AutocalcExprs.FieldAccess(f, false); // never label ChatCommand fields
 
     override def render: String = s"${fa.render} ";
     def apiType: Option[ChatType.ChatType] = None;

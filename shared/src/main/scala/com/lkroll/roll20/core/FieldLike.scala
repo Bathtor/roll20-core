@@ -14,8 +14,8 @@ trait FieldLike[T] {
   def reader: Readable[T];
   def read(s: String): Option[T] = reader.read(s);
 
-  def expr: AutocalcExpression[T] = CoreImplicits.fieldToAuto(this);
-  def arith()(implicit n: Numeric[T]): ArithmeticExpression[T] = CoreImplicits.autoToArith(this.expr);
+  def expr(implicit labelFields: LabelFields): AutocalcExpression[T] = CoreImplicits.fieldToAutoMaybeLabel(this);
+  def arith()(implicit n: Numeric[T], labelFields: LabelFields): ArithmeticExpression[T] = CoreImplicits.autoToArith(this.expr);
 
   /*
    * Compare fields by attr

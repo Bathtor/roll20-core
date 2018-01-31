@@ -24,13 +24,24 @@
  */
 package com.lkroll.roll20.core
 
+sealed trait LabelFields {
+  def value: Boolean;
+}
+object AlwaysLabelFields extends LabelFields {
+  override def value: Boolean = true;
+}
+object ExplicitlyLabelFields extends LabelFields {
+  override def value: Boolean = false;
+}
+
 trait CoreImplicits {
   import Readable._
 
   implicit def stringToExpr(s: String): AutocalcExpression[String] = AutocalcExprs.Literal(s);
   implicit def numToExpr[T: Numeric](num: T): ArithmeticExpression[T] = Arith.Literal(num);
   implicit def seqToExpr[T](s: Seq[AutocalcExpression[T]]): AutocalcExpression[T] = AutocalcExprs.SeqExpr(s);
-  implicit def fieldToAuto[T](f: FieldLike[T]): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f);
+  //implicit def fieldToAutoNoLabel[T](f: FieldLike[T]): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, false);
+  implicit def fieldToAutoMaybeLabel[T](f: FieldLike[T])(implicit labelFields: LabelFields): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, labelFields.value);
 
   implicit def str2ChatMessage(s: String): ChatOutMessage = SimpleMessage(s);
 
@@ -49,7 +60,7 @@ trait CoreImplicits {
   implicit def modLackCPToDefault[Out](mlcp: RollModifiers.ModifierLackingCP[Out]): Out = mlcp(ComparePoints.DefaultCP);
   implicit def diceToRoll(dice: DiceExpression): RollExprs.Dice = RollExprs.Dice(dice);
   implicit def arithToAuto[T: Numeric](expr: ArithmeticExpression[T]): AutocalcExpression[T] = AutocalcExprs.Arithmetic(expr);
-  implicit def autoToArith[T: Numeric](expr: AutocalcExpression[T]): ArithmeticExpression[T] = AutocalcExprs.NumericExpr(expr);
+  implicit def autoToArith[T: Numeric](expr: AutocalcExpression[T]): ArithmeticExpression[T] = Arith.AutoArith(expr);
   //implicit def fieldToArith[T: Numeric](f: FieldLike[T]): ArithmeticExpression[T] = fieldToExpr(f);
   //implicit def rollToArith(roll: RollExpression): RollExprs.Arith = RollExprs.Arith(roll);
   implicit def arithToRoll[T: Numeric](expr: ArithmeticExpression[T]): RollExpression[T] = RollExprs.Math(expr);
@@ -84,3 +95,9 @@ trait CoreImplicits {
 }
 
 object CoreImplicits extends CoreImplicits;
+object CoreImplicitsLabelFields extends CoreImplicits {
+  implicit val labelFields: LabelFields = AlwaysLabelFields;
+}
+object CoreImplicitsExplicitLabels extends CoreImplicits {
+  implicit val labelFields: LabelFields = ExplicitlyLabelFields;
+}
