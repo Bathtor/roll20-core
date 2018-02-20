@@ -26,10 +26,47 @@ package com.lkroll.roll20.core
 
 import scalajs.js;
 
-trait Serialiser[T] {
-  def serialise(o: T): js.Any
+trait Serialiser[S, T] {
+  def serialise(o: T): S
 }
 
-object DefaultSerialiser extends Serialiser[Any] {
+trait JSSerialiser[T] extends Serialiser[js.Any, T];
+trait StringSerialiser[T] extends Serialiser[String, T];
+
+object JSDefaultSerialiser extends JSSerialiser[Any] {
   override def serialise(o: Any): js.Any = o.asInstanceOf[js.Any];
 }
+
+object StringDefaultSerialiser extends StringSerialiser[Any] {
+  override def serialise(o: Any): String = o.toString();
+}
+
+class IdSerialiser[T] extends Serialiser[T, T] {
+  override def serialise(o: T): T = o;
+}
+
+object StringIdSerialiser extends IdSerialiser[String] with StringSerialiser[String];
+object JsIdSerialiser extends IdSerialiser[js.Any] with JSSerialiser[js.Any];
+
+object PrimitiveStringSerialisers {
+
+  class DefaultWrapper[T] extends StringSerialiser[T] {
+    override def serialise(o: T): String = StringDefaultSerialiser.serialise(o);
+  }
+  def default[T]: StringSerialiser[T] = new DefaultWrapper[T];
+
+  class FunctionWrapper[T](f: T => String) extends StringSerialiser[T] {
+    override def serialise(o: T): String = f(o);
+  }
+  def ser[T](f: T => String): StringSerialiser[T] = new FunctionWrapper(f);
+
+  implicit val nullSer: StringSerialiser[Int] = ser(s => "");
+  implicit val intSer: StringSerialiser[Int] = default;
+  implicit val longSer: StringSerialiser[Long] = default;
+  implicit val floatSer: StringSerialiser[Float] = default;
+  implicit val doubleSer: StringSerialiser[Double] = default;
+  implicit val booleanSer: StringSerialiser[Boolean] = default;
+  implicit val stringSer: StringSerialiser[String] = StringIdSerialiser;
+
+}
+

@@ -33,16 +33,22 @@ trait RenderingContext {
   def mapAccess(rowId: String, s: String): String;
   def mapAccess(s: String): String;
   def mapSelect(s: String): String;
+  def mapMatcher(s: String): String => Boolean;
+  def mapMatcher(rowId: String, s: String): String => Boolean;
 }
 
 case object UIContext extends RenderingContext {
   def mapAccess(rowId: String, s: String): String = s;
   def mapAccess(s: String): String = s;
   def mapSelect(s: String): String = s;
+  def mapMatcher(s: String): String => Boolean = _.equals(s);
+  def mapMatcher(rowId: String, s: String): String => Boolean = _.equals(s);
 }
 
 case object APIContext extends RenderingContext {
   def mapAccess(rowId: String, s: String): String = s;
   def mapAccess(s: String): String = s;
   def mapSelect(s: String): String = s;
+  def mapMatcher(s: String): String => Boolean = _.equals(s);
+  def mapMatcher(rowId: String, s: String): String => Boolean = _.equals(s);
 }

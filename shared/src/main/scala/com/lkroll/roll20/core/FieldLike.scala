@@ -9,10 +9,14 @@ trait FieldLike[T] {
   def accessor: String = ctx.mapAccess(qualifiedAttr);
   def accessor(rowId: String): String = ctx.mapAccess(rowId, qualifiedAttr);
   def selector: String = ctx.mapSelect(qualifiedAttr);
+  def nameMatcher: String => Boolean = ctx.mapMatcher(qualifiedAttr);
+  def nameMatcherRow(rowId: String): String => Boolean = ctx.mapMatcher(rowId, qualifiedAttr);
   def initialValue: String;
 
   def reader: Readable[T];
   def read(s: String): Option[T] = reader.read(s);
+
+  lazy val isMax: Boolean = attr.endsWith("_max");
 
   def expr(implicit labelFields: LabelFields): AutocalcExpression[T] = CoreImplicits.fieldToAutoMaybeLabel(this);
   def arith()(implicit n: Numeric[T], labelFields: LabelFields): ArithmeticExpression[T] = CoreImplicits.autoToArith(this.expr);
