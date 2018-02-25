@@ -55,6 +55,8 @@ sealed trait RollExpression[T] extends Renderable {
   def forSelected(): RollExpression[T] = transformForAccess(Selected);
   def forTarget(): RollExpression[T] = transformForAccess(Targeted);
   def forTarget(targetName: String): RollExpression[T] = transformForAccess(Target(targetName));
+
+  def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T];
 }
 
 sealed trait IntRollExpression extends RollExpression[Int] {
@@ -84,6 +86,13 @@ sealed trait IntRollExpression extends RollExpression[Int] {
   def sd(): IntRollExpression = this ++ SortDescRoll;
   override def transformForAccess(f: AccessTransformer): RollExpression[Int] = this.transformForAccessIRE(f);
   protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression;
+  override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[Int] = {
+    replacement.value match {
+      case i: Int => this.replaceQueryIRE(replacement.asInstanceOf[QueryReplacer[Int]])
+      case _      => this
+    }
+  }
+  protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression;
 }
 
 object RollExprs {
@@ -93,12 +102,14 @@ object RollExprs {
     override def render: String = dice.render
     override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, mod);
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
+    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = this;
   }
 
   case class WithMods(dice: DiceExpression, mod: RollModifier) extends IntRollExpression {
     override def render: String = s"${dice.render}${mod.render}";
     override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, this.mod ++ mod);
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
+    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = this;
   }
 
   case class Group(exprs: Seq[IntRollExpression]) extends IntRollExpression {
@@ -106,6 +117,8 @@ object RollExprs {
     def ++(mod: RollModifier): IntRollExpression = GroupWithMods(exprs, mod);
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
       Group(exprs.map(_.transformForAccessIRE(f)));
+    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression =
+      Group(exprs.map(_.replaceQueryIRE(replacement)));
   }
 
   case class GroupWithMods(exprs: Seq[IntRollExpression], mod: RollModifier) extends IntRollExpression {
@@ -113,38 +126,59 @@ object RollExprs {
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(exprs, this.mod ++ mod);
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
       GroupWithMods(exprs.map(_.transformForAccessIRE(f)), mod);
+    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression =
+      Group(exprs.map(_.replaceQueryIRE(replacement)));
   }
 
   case class Inline(roll: Rolls.InlineRoll[Int]) extends IntRollExpression {
     override def render: String = roll.render;
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(Seq(this), mod);
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = Inline(roll.transformForAccess(f));
+    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = Inline(roll.replaceQuery(replacement));
   }
 
   case class Math[T: Numeric](expr: ArithmeticExpression[T]) extends RollExpression[T] {
     override def render: String = expr.render;
     override def transformForAccess(f: AccessTransformer): RollExpression[T] = Math(expr.transformForAccess(f));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = Math(expr.replaceQuery(replacement));
+  }
+
+  case class AsIRE(expr: RollExpression[Int]) extends IntRollExpression {
+    override def render: String = expr.render;
+    override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(Seq(this), mod);
+    override def transformForAccessIRE(f: AccessTransformer): IntRollExpression = AsIRE(expr.transformForAccess(f));
+    override def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = AsIRE(expr.replaceQuery(replacement));
   }
 
   case class WithIntQuery(query: RollQuery[Int]) extends IntRollExpression {
     override def render: String = query.render;
     override def ++(mod: RollModifier): IntRollExpression = ???; // not allowed here
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
+    override def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = {
+      if (query.name.equals(replacement.name)) {
+        AsIRE(Math(Arith.Literal(replacement.value)))
+      } else {
+        this
+      }
+    }
   }
 
   case class WithOption[T](expr: RollExpression[T], option: RollOption) extends RollExpression[T] {
     override def render: String = s"${expr.render} ${option.render}";
     override def transformForAccess(f: AccessTransformer): RollExpression[T] = WithOption(expr.transformForAccess(f), option);
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = WithOption(expr.replaceQuery(replacement), option);
   }
 
   case class LabelledRoll[T](expr: RollExpression[T], label: String) extends RollExpression[T] {
     override def render: String = s"${expr.render}[$label]";
     override def transformForAccess(f: AccessTransformer): RollExpression[T] = LabelledRoll(expr.transformForAccess(f), label);
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = LabelledRoll(expr.replaceQuery(replacement), label);
   }
 
   case class Native[T](expr: String) extends RollExpression[T] {
     override def render: String = expr;
     override def transformForAccess(f: AccessTransformer): RollExpression[T] = ???; // Can't inspect native rolls
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = ???; // Can't inspect native rolls
   }
 }
 
@@ -178,6 +212,8 @@ sealed trait Roll extends Renderable {
   def forSelected(): RollType = transformForAccess(Selected);
   def forTarget(): RollType = transformForAccess(Targeted);
   def forTarget(targetName: String): RollType = transformForAccess(Target(targetName));
+  
+  def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType;
 }
 
 object Rolls {
@@ -188,6 +224,7 @@ object Rolls {
 
     override def render: String = s"/roll ${expr.render}";
     override def transformForAccess(f: AccessTransformer): RollType = SimpleRoll(expr.transformForAccess(f));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = SimpleRoll(expr.replaceQuery(replacement));
   }
 
   case class InlineRoll[T](expr: RollExpression[T]) extends Roll {
@@ -195,6 +232,7 @@ object Rolls {
 
     override def render: String = s"[[${expr.render}]]";
     override def transformForAccess(f: AccessTransformer): RollType = InlineRoll(expr.transformForAccess(f));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = InlineRoll(expr.replaceQuery(replacement));
   }
 
   case class TemplateRoll(chat: ChatCommand, template: TemplateApplication) extends Roll {
@@ -202,6 +240,7 @@ object Rolls {
 
     override def render: String = s"${chat.render}${template.render}";
     override def transformForAccess(f: AccessTransformer): RollType = this; // TODO maybe carry this through to TemplateApplication
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = this; // TODO maybe carry this through to TemplateApplication
   }
 }
 

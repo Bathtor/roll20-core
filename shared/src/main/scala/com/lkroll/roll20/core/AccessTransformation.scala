@@ -30,42 +30,60 @@ object AccessTransformation {
   sealed trait AccessTransformer {
     type FieldOut[T] <: FieldAccessVariant[T];
     type AbilityOut[T] <: AbilityAccessVariant[T];
-    def apply[T](field: FieldAccess[T]): FieldOut[T];
-    def apply[T](ability: Ability[T]): AbilityOut[T];
+    def apply[T](field: FieldAccessVariant[T]): FieldOut[T];
+    def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T];
   }
 
   object Identity extends AccessTransformer {
+    override type FieldOut[T] = FieldAccessVariant[T];
+    override type AbilityOut[T] = AbilityAccessVariant[T];
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = field;
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = ability;
+  }
+
+  object Simple extends AccessTransformer {
     override type FieldOut[T] = FieldAccess[T];
     override type AbilityOut[T] = Ability[T];
-    override def apply[T](field: FieldAccess[T]): FieldOut[T] = field;
-    override def apply[T](ability: Ability[T]): AbilityOut[T] = ability;
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = FieldAccess(field.field, field.labelled)
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = Ability(ability.name);
   }
 
   case class Character(characterName: String) extends AccessTransformer {
     override type FieldOut[T] = CharacterAttributeAccess[T];
     override type AbilityOut[T] = CharacterAbilityAccess[T];
-    override def apply[T](field: FieldAccess[T]): FieldOut[T] = CharacterAttributeAccess(field.field, characterName, field.labelled);
-    override def apply[T](ability: Ability[T]): AbilityOut[T] = CharacterAbilityAccess(ability.name, characterName);
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = CharacterAttributeAccess(field.field, characterName, field.labelled);
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = CharacterAbilityAccess(ability.name, characterName);
   }
 
   object Selected extends AccessTransformer {
     override type FieldOut[T] = SelectedAttributeAccess[T];
     override type AbilityOut[T] = SelectedAbilityAccess[T];
-    override def apply[T](field: FieldAccess[T]): FieldOut[T] = SelectedAttributeAccess(field.field, field.labelled);
-    override def apply[T](ability: Ability[T]): AbilityOut[T] = SelectedAbilityAccess(ability.name);
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = SelectedAttributeAccess(field.field, field.labelled);
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = SelectedAbilityAccess(ability.name);
   }
 
   object Targeted extends AccessTransformer {
     override type FieldOut[T] = TargetedAttributeAccess[T];
     override type AbilityOut[T] = TargetedAbilityAccess[T];
-    override def apply[T](field: FieldAccess[T]): FieldOut[T] = TargetedAttributeAccess(field.field, None, field.labelled);
-    override def apply[T](ability: Ability[T]): AbilityOut[T] = TargetedAbilityAccess(ability.name, None);
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = TargetedAttributeAccess(field.field, None, field.labelled);
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = TargetedAbilityAccess(ability.name, None);
   }
 
   case class Target(targetName: String) extends AccessTransformer {
     override type FieldOut[T] = TargetedAttributeAccess[T];
     override type AbilityOut[T] = TargetedAbilityAccess[T];
-    override def apply[T](field: FieldAccess[T]): FieldOut[T] = TargetedAttributeAccess(field.field, Some(targetName), field.labelled);
-    override def apply[T](ability: Ability[T]): AbilityOut[T] = TargetedAbilityAccess(ability.name, Some(targetName));
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = TargetedAttributeAccess(field.field, Some(targetName), field.labelled);
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = TargetedAbilityAccess(ability.name, Some(targetName));
+  }
+
+  case class AtRow(sectionSelect: RenderingContext => Boolean, rowId: String) extends AccessTransformer {
+    override type FieldOut[T] = FieldAccessVariant[T];
+    override type AbilityOut[T] = AbilityAccessVariant[T];
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = if (sectionSelect(field.field.ctx)) {
+      field.replaceContext(RowAccess(rowId))
+    } else {
+      field
+    }
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = ability;
   }
 }

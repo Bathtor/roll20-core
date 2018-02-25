@@ -25,6 +25,7 @@
 package com.lkroll.roll20.core
 
 trait RollQuery[T] extends Renderable {
+  def name: String;
   def expr(implicit ev: T =:= Int) = RollExprs.WithIntQuery(this.asInstanceOf[RollQuery[Int]]);
   def arith(implicit ev: T =:= Int) = Arith.RollArith(expr(ev));
 }
@@ -46,3 +47,5 @@ case class LabelledSelectQuery[T](name: String, options: Seq[(String, T)]) exten
   }.mkString("|");
   override def render: String = s"?{Select $name|$stringOptions}";
 }
+
+case class QueryReplacer[+T](name: String, value: T)
