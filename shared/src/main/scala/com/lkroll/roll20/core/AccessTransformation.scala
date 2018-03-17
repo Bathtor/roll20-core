@@ -41,6 +41,13 @@ object AccessTransformation {
     override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = ability;
   }
 
+  object Delabel extends AccessTransformer {
+    override type FieldOut[T] = FieldAccessVariant[T];
+    override type AbilityOut[T] = AbilityAccessVariant[T];
+    override def apply[T](field: FieldAccessVariant[T]): FieldOut[T] = field.withLabelled(false);
+    override def apply[T](ability: AbilityAccessVariant[T]): AbilityOut[T] = ability;
+  }
+
   object Simple extends AccessTransformer {
     override type FieldOut[T] = FieldAccess[T];
     override type AbilityOut[T] = Ability[T];

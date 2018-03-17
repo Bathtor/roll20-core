@@ -28,6 +28,7 @@ trait RollQuery[T] extends Renderable {
   def name: String;
   def expr(implicit ev: T =:= Int) = RollExprs.WithIntQuery(this.asInstanceOf[RollQuery[Int]]);
   def arith(implicit ev: T =:= Int) = Arith.RollArith(expr(ev));
+  def param(implicit ev: T =:= Int) = DiceParams.QueryParameter(this.asInstanceOf[RollQuery[Int]]);
 }
 
 case class InputQuery[T](name: String, defaultValue: Option[T]) extends RollQuery[T] {

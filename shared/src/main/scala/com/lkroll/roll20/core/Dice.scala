@@ -101,11 +101,15 @@ sealed trait DiceParameter extends Renderable {
 object DiceParams {
 
   case class AutocalcParameter(n: AutocalcExpression[Int]) extends DiceParameter {
-    override def render: String = n.render;
+    lazy val nNoLabel = n.transformForAccess(AccessTransformation.Delabel);
+
+    override def render: String = nNoLabel.render;
   }
 
   case class ArithmeticParameter(n: ArithmeticExpression[Int]) extends DiceParameter {
-    override def render: String = n.render;
+    lazy val nNoLabel = n.transformForAccess(AccessTransformation.Delabel);
+
+    override def render: String = nNoLabel.render;
   }
 
   case class QueryParameter(query: RollQuery[Int]) extends DiceParameter {
