@@ -34,7 +34,10 @@ trait JSSerialiser[T] extends Serialiser[js.Any, T];
 trait StringSerialiser[T] extends Serialiser[String, T];
 
 object JSDefaultSerialiser extends JSSerialiser[Any] {
-  override def serialise(o: Any): js.Any = o.asInstanceOf[js.Any];
+  override def serialise(o: Any): js.Any = o match {
+    case b: Boolean => if (b) "on" else 0 // because Roll20 -.-
+    case _          => o.asInstanceOf[js.Any]
+  }
 }
 
 object StringDefaultSerialiser extends StringSerialiser[Any] {
@@ -60,12 +63,12 @@ object PrimitiveStringSerialisers {
   }
   def ser[T](f: T => String): StringSerialiser[T] = new FunctionWrapper(f);
 
-  implicit val nullSer: StringSerialiser[Int] = ser(s => "");
+  implicit val nullSer: StringSerialiser[Int] = ser(s => ""); // TODO is this right? Not StringSerialiser[Void]?
   implicit val intSer: StringSerialiser[Int] = default;
   implicit val longSer: StringSerialiser[Long] = default;
   implicit val floatSer: StringSerialiser[Float] = default;
   implicit val doubleSer: StringSerialiser[Double] = default;
-  implicit val booleanSer: StringSerialiser[Boolean] = default;
+  implicit val booleanSer: StringSerialiser[Boolean] = ser(b => if (b) "on" else "0"); // because Roll20 -.-
   implicit val stringSer: StringSerialiser[String] = StringIdSerialiser;
 
 }
