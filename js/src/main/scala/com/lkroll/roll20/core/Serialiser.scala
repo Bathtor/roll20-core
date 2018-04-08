@@ -51,25 +51,28 @@ class IdSerialiser[T] extends Serialiser[T, T] {
 object StringIdSerialiser extends IdSerialiser[String] with StringSerialiser[String];
 object JsIdSerialiser extends IdSerialiser[js.Any] with JSSerialiser[js.Any];
 
-object PrimitiveStringSerialisers {
+trait PrimitiveStringSerialisers {
+  def default[T]: StringSerialiser[T] = new PrimitiveStringSerialisers.DefaultWrapper[T];
+  def ser[T](f: T => String): StringSerialiser[T] = new PrimitiveStringSerialisers.FunctionWrapper(f);
 
-  class DefaultWrapper[T] extends StringSerialiser[T] {
-    override def serialise(o: T): String = StringDefaultSerialiser.serialise(o);
-  }
-  def default[T]: StringSerialiser[T] = new DefaultWrapper[T];
-
-  class FunctionWrapper[T](f: T => String) extends StringSerialiser[T] {
-    override def serialise(o: T): String = f(o);
-  }
-  def ser[T](f: T => String): StringSerialiser[T] = new FunctionWrapper(f);
-
-  implicit val nullSer: StringSerialiser[Int] = ser(s => ""); // TODO is this right? Not StringSerialiser[Void]?
+  implicit val nullSer: StringSerialiser[Void] = ser(s => "");
   implicit val intSer: StringSerialiser[Int] = default;
   implicit val longSer: StringSerialiser[Long] = default;
   implicit val floatSer: StringSerialiser[Float] = default;
   implicit val doubleSer: StringSerialiser[Double] = default;
   implicit val booleanSer: StringSerialiser[Boolean] = ser(b => if (b) "on" else "0"); // because Roll20 -.-
   implicit val stringSer: StringSerialiser[String] = StringIdSerialiser;
+}
+
+object PrimitiveStringSerialisers extends PrimitiveStringSerialisers {
+
+  class DefaultWrapper[T] extends StringSerialiser[T] {
+    override def serialise(o: T): String = StringDefaultSerialiser.serialise(o);
+  }
+
+  class FunctionWrapper[T](f: T => String) extends StringSerialiser[T] {
+    override def serialise(o: T): String = f(o);
+  }
 
 }
 
