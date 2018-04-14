@@ -25,6 +25,6 @@
 package com.lkroll.roll20.core
 
 case class PlayerInfo(id: String, name: String) {
-  private lazy val whisperToName = name.split(" ")(0);
+  private lazy val whisperToName = name.replaceAll(""" \(GM\)""", "");
   def whisperTo: Chat.Whisper = Chat.Whisper(whisperToName);
 }
