@@ -212,7 +212,7 @@ sealed trait Roll extends Renderable {
   def forSelected(): RollType = transformForAccess(Selected);
   def forTarget(): RollType = transformForAccess(Targeted);
   def forTarget(targetName: String): RollType = transformForAccess(Target(targetName));
-  
+
   def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType;
 }
 
@@ -241,6 +241,16 @@ object Rolls {
     override def render: String = s"${chat.render}${template.render}";
     override def transformForAccess(f: AccessTransformer): RollType = this; // TODO maybe carry this through to TemplateApplication
     override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = this; // TODO maybe carry this through to TemplateApplication
+  }
+
+  case class APIRoll(command: String, args: List[(String, Renderable)]) extends Roll {
+    override type RollType = APIRoll;
+
+    lazy val apiCmd = Chat.API(command, args.map(t => s"--${t._1} ${t._2.render}").mkString(" "));
+
+    override def render: String = apiCmd.render;
+    override def transformForAccess(f: AccessTransformer): RollType = this;
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = this;
   }
 }
 
