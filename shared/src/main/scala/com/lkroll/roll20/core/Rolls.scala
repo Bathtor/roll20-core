@@ -243,14 +243,24 @@ object Rolls {
     override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = this; // TODO maybe carry this through to TemplateApplication
   }
 
-  case class APIRoll(command: String, args: List[(String, Renderable)]) extends Roll {
+  case class APIRoll(command: String, args: List[(String, Renderable)] = List.empty, trailing: Option[Renderable] = None) extends Roll {
+    import APIRoll.quot;
     override type RollType = APIRoll;
 
-    lazy val apiCmd = Chat.API(command, args.map(t => s"--${t._1} ${t._2.render}").mkString(" "));
+    lazy val argsO = if (args.isEmpty) None else Some(args.map(t => s"--${t._1} ${t._2.render}").mkString(" "));
+    lazy val apiCmd = (argsO, trailing) match {
+      case (Some(argsS), Some(trailingR)) => Chat.API(command, s"$argsS -- ${trailingR.render}");
+      case (Some(argsS), None)            => Chat.API(command, s"$argsS");
+      case (None, Some(trailingR))        => Chat.API(command, s"-- ${trailingR.render}");
+      case (None, None)                   => Chat.API(command, "");
+    };
 
     override def render: String = apiCmd.render;
     override def transformForAccess(f: AccessTransformer): RollType = this;
     override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = this;
+  }
+  object APIRoll {
+    val quot = "\"";
   }
 }
 

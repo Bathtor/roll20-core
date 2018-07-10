@@ -37,6 +37,10 @@ object ExplicitlyLabelFields extends LabelFields {
 trait CoreImplicits {
   import Readable._
 
+  implicit class StringRenderable(s: String) extends Renderable {
+    override def render: String = s;
+  }
+
   implicit def stringToExpr(s: String): AutocalcExpression[String] = AutocalcExprs.Literal(s);
   implicit def numToExpr[T: Numeric](num: T): ArithmeticExpression[T] = Arith.Literal(num);
   implicit def seqToExpr[T](s: Seq[AutocalcExpression[T]]): AutocalcExpression[T] = AutocalcExprs.SeqExpr(s);
