@@ -39,9 +39,10 @@ trait CoreImplicits {
 
   implicit class StringRenderable(s: String) extends Renderable {
     override def render: String = s;
+    def expr: AutocalcExpression[String] = AutocalcExprs.Literal(s);
   }
 
-  implicit def stringToExpr(s: String): AutocalcExpression[String] = AutocalcExprs.Literal(s);
+  //implicit def stringToExpr(s: String): AutocalcExpression[String] = AutocalcExprs.Literal(s);
   implicit def numToExpr[T: Numeric](num: T): ArithmeticExpression[T] = Arith.Literal(num);
   implicit def seqToExpr[T](s: Seq[AutocalcExpression[T]]): AutocalcExpression[T] = AutocalcExprs.SeqExpr(s);
   //implicit def fieldToAutoNoLabel[T](f: FieldLike[T]): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, false);
