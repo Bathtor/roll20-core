@@ -35,9 +35,7 @@ object ChatType extends Enumeration {
   val general, rollresult, gmrollresult, emote, whisper, desc, api = Value;
 }
 
-sealed trait ChatOutMessage {
-  def render: String;
-}
+sealed trait ChatOutMessage extends Renderable;
 
 final case class SimpleMessage(message: String) extends ChatOutMessage {
   override def render: String = message;
@@ -85,7 +83,7 @@ object Chat {
     }
   }
 
-  case class FromField(f: FieldLike[ChatCommand]) extends ChatCommand {
+  final case class FromField(f: FieldLike[ChatCommand]) extends ChatCommand {
     val fa = AutocalcExprs.FieldAccess(f, false); // never label ChatCommand fields
 
     override def render: String = s"${fa.render} ";
@@ -97,7 +95,7 @@ object Chat {
     def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
-  case class API(command: String, args: String) extends ChatCommand {
+  final case class API(command: String, args: String) extends ChatCommand {
     override def render: String = s"!$command $args";
     def apiType: Option[ChatType.ChatType] = Some(ChatType.api);
   }
@@ -107,7 +105,7 @@ object Chat {
     def apiType: Option[ChatType.ChatType] = Some(ChatType.whisper);
   }
 
-  case class Whisper(target: String) extends ChatCommand {
+  final case class Whisper(target: String) extends ChatCommand {
     override def render: String = s"""/w "${target}" """;
     def apiType: Option[ChatType.ChatType] = Some(ChatType.whisper);
   }
@@ -122,7 +120,7 @@ object Chat {
     def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
-  case class SpecialEffects(`type`: String, colour: String, sourceId: String, targetId: Option[String] = None) extends ChatCommand {
+  final case class SpecialEffects(`type`: String, colour: String, sourceId: String, targetId: Option[String] = None) extends ChatCommand {
     override def render: String = targetId match {
       case Some(tid) => "/fx ${type}-${colour} ${sourceId} ${tid}";
       case None      => "/fx ${type}-${colour} ${sourceId}";
@@ -135,12 +133,12 @@ object Chat {
     def apiType: Option[ChatType.ChatType] = Some(ChatType.desc);
   }
 
-  case class SpeakAs(target: String) extends ChatCommand {
+  final case class SpeakAs(target: String) extends ChatCommand {
     override def render: String = s"""/as "${target}" """;
     def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
-  case class EmoteAs(target: String) extends ChatCommand {
+  final case class EmoteAs(target: String) extends ChatCommand {
     override def render: String = s"""/emas "${target}" """;
     def apiType: Option[ChatType.ChatType] = Some(ChatType.emote);
   }

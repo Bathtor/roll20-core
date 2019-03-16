@@ -42,13 +42,20 @@ trait CoreImplicits {
     def expr: AutocalcExpression[String] = AutocalcExprs.Literal(s);
   }
 
+  implicit class BooleanRenderable(b: Boolean) extends Renderable {
+    override def render: String = if (b) "1" else "0";
+    def expr: AutocalcExpression[Boolean] = AutocalcExprs.Literal(b);
+  }
+
   //implicit def stringToExpr(s: String): AutocalcExpression[String] = AutocalcExprs.Literal(s);
   implicit def numToExpr[T: Numeric](num: T): ArithmeticExpression[T] = Arith.Literal(num);
   implicit def seqToExpr[T](s: Seq[AutocalcExpression[T]]): AutocalcExpression[T] = AutocalcExprs.SeqExpr(s);
   //implicit def fieldToAutoNoLabel[T](f: FieldLike[T]): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, false);
   implicit def fieldToAutoMaybeLabel[T](f: FieldLike[T])(implicit labelFields: LabelFields): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, labelFields.value);
 
-  implicit def str2ChatMessage(s: String): ChatOutMessage = SimpleMessage(s);
+  implicit class StringExt(s: String) {
+    def msg: ChatOutMessage = SimpleMessage(s);
+  }
 
   implicit def autocalcToDiceParam(x: AutocalcExpression[Int]): DiceParameter = DiceParams.AutocalcParameter(x);
   implicit def intToDiceParam(n: Int): DiceParameter = DiceParams.ArithmeticParameter(n);
