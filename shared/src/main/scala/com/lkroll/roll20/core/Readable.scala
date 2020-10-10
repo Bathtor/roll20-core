@@ -37,13 +37,13 @@ object Readable {
 
     def isInstanceOf(x: Any) = implicitly[ClassTag[T]].runtimeClass.isInstance(x);
 
-    def read(x: String): Option[T] = try {
-      Some(p(x))
-    } catch {
-      case e: Throwable => e.printStackTrace(); None
-    }
+    def read(x: String): Option[T] =
+      try {
+        Some(p(x))
+      } catch {
+        case e: Throwable => e.printStackTrace(); None
+      }
   }
 
   def apply[A](implicit instance: Readable[A]): Readable[A] = instance
 }
-

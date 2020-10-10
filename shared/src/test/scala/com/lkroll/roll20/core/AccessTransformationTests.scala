@@ -1,8 +1,10 @@
 package com.lkroll.roll20.core
 
 import org.scalatest._
+import org.scalatest.funsuite._
+import org.scalatest.matchers.should.Matchers
 
-class AccessTransformationTests extends FunSuite with Matchers {
+class AccessTransformationTests extends AnyFunSuite with Matchers {
 
   import CoreImplicitsExplicitLabels._;
 

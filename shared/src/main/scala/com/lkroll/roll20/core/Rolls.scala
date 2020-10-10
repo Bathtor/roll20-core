@@ -29,7 +29,7 @@ import scala.collection.Seq
 
 sealed trait RollExpression[T] extends Renderable {
   import RollExprs._;
-  import Arith.{ RollArith => Arith };
+  import Arith.{RollArith => Arith};
   import AccessTransformation._;
 
   def +(other: ArithmeticExpression[T])(implicit n: Numeric[T]) = Arith(this) + other;
@@ -133,21 +133,25 @@ object RollExprs {
   case class Inline(roll: Rolls.InlineRoll[Int]) extends IntRollExpression {
     override def render: String = roll.render;
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(Seq(this), mod);
-    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = Inline(roll.transformForAccess(f));
-    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = Inline(roll.replaceQuery(replacement));
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
+      Inline(roll.transformForAccess(f));
+    override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression =
+      Inline(roll.replaceQuery(replacement));
   }
 
   case class Math[T: Numeric](expr: ArithmeticExpression[T]) extends RollExpression[T] {
     override def render: String = expr.render;
     override def transformForAccess(f: AccessTransformer): RollExpression[T] = Math(expr.transformForAccess(f));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = Math(expr.replaceQuery(replacement));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] =
+      Math(expr.replaceQuery(replacement));
   }
 
   case class AsIRE(expr: RollExpression[Int]) extends IntRollExpression {
     override def render: String = expr.render;
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(Seq(this), mod);
     override def transformForAccessIRE(f: AccessTransformer): IntRollExpression = AsIRE(expr.transformForAccess(f));
-    override def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = AsIRE(expr.replaceQuery(replacement));
+    override def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression =
+      AsIRE(expr.replaceQuery(replacement));
   }
 
   case class WithIntQuery(query: RollQuery[Int]) extends IntRollExpression {
@@ -165,20 +169,25 @@ object RollExprs {
 
   case class WithOption[T](expr: RollExpression[T], option: RollOption) extends RollExpression[T] {
     override def render: String = s"${expr.render} ${option.render}";
-    override def transformForAccess(f: AccessTransformer): RollExpression[T] = WithOption(expr.transformForAccess(f), option);
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = WithOption(expr.replaceQuery(replacement), option);
+    override def transformForAccess(f: AccessTransformer): RollExpression[T] =
+      WithOption(expr.transformForAccess(f), option);
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] =
+      WithOption(expr.replaceQuery(replacement), option);
   }
 
   case class LabelledRoll[T](expr: RollExpression[T], label: String) extends RollExpression[T] {
     override def render: String = s"${expr.render}[$label]";
-    override def transformForAccess(f: AccessTransformer): RollExpression[T] = LabelledRoll(expr.transformForAccess(f), label);
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = LabelledRoll(expr.replaceQuery(replacement), label);
+    override def transformForAccess(f: AccessTransformer): RollExpression[T] =
+      LabelledRoll(expr.transformForAccess(f), label);
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] =
+      LabelledRoll(expr.replaceQuery(replacement), label);
   }
 
   case class Native[T](expr: String) extends RollExpression[T] {
     override def render: String = expr;
     override def transformForAccess(f: AccessTransformer): RollExpression[T] = ???; // Can't inspect native rolls
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] = ???; // Can't inspect native rolls
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollExpression[T] =
+      ???; // Can't inspect native rolls
   }
 }
 
@@ -224,7 +233,8 @@ object Rolls {
 
     override def render: String = s"/roll ${expr.render}";
     override def transformForAccess(f: AccessTransformer): RollType = SimpleRoll(expr.transformForAccess(f));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = SimpleRoll(expr.replaceQuery(replacement));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType =
+      SimpleRoll(expr.replaceQuery(replacement));
   }
 
   case class InlineRoll[T](expr: RollExpression[T]) extends Roll {
@@ -232,18 +242,24 @@ object Rolls {
 
     override def render: String = s"[[${expr.render}]]";
     override def transformForAccess(f: AccessTransformer): RollType = InlineRoll(expr.transformForAccess(f));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = InlineRoll(expr.replaceQuery(replacement));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType =
+      InlineRoll(expr.replaceQuery(replacement));
   }
 
   case class TemplateRoll(chat: ChatCommand, template: TemplateApplication) extends Roll {
     override type RollType = TemplateRoll;
 
     override def render: String = s"${chat.render}${template.render}";
-    override def transformForAccess(f: AccessTransformer): RollType = this; // TODO maybe carry this through to TemplateApplication
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType = this; // TODO maybe carry this through to TemplateApplication
+    override def transformForAccess(f: AccessTransformer): RollType =
+      this; // TODO maybe carry this through to TemplateApplication
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): RollType =
+      this; // TODO maybe carry this through to TemplateApplication
   }
 
-  case class APIRoll(command: String, args: List[(String, Renderable)] = List.empty, trailing: Option[Renderable] = None) extends Roll {
+  case class APIRoll(command: String,
+                     args: List[(String, Renderable)] = List.empty,
+                     trailing: Option[Renderable] = None)
+      extends Roll {
     import APIRoll.quot;
     override type RollType = APIRoll;
 
@@ -264,12 +280,9 @@ object Rolls {
   }
 }
 
-trait TemplateApplication extends Renderable {
+trait TemplateApplication extends Renderable {}
 
-}
-
-sealed trait ComparePoint extends Renderable {
-}
+sealed trait ComparePoint extends Renderable {}
 
 object ComparePoints {
 
@@ -328,7 +341,8 @@ object RollModifiers {
   }
 
   object MLCP {
-    def apply(completer: ComparePoint => RollModifier): ModifierLackingCP[RollModifier] = new ModifierLackingCP[RollModifier](completer);
+    def apply(completer: ComparePoint => RollModifier): ModifierLackingCP[RollModifier] =
+      new ModifierLackingCP[RollModifier](completer);
   }
 
   case class TargetRoll(cp: ComparePoint) extends RollModifier {
@@ -398,7 +412,8 @@ object RollModifiers {
 
 }
 
-case class RollField[T: Numeric](ctx: RenderingContext, attr: String, formula: RollExpression[T]) extends FieldLike[RollExpression[T]] {
+case class RollField[T: Numeric](ctx: RenderingContext, attr: String, formula: RollExpression[T])
+    extends FieldLike[RollExpression[T]] {
   override def editable(): Boolean = false; // for now...maybe change later
   override def name: String = s"attr_${attr}";
   override def initialValue: String = formula.render;
@@ -430,8 +445,8 @@ object APIButton {
 }
 
 /**
- * Note that this doesn't really work at the moment, as the template doesn't unescape things again, but fails if they are not escaped -.-
- */
+  * Note that this doesn't really work at the moment, as the template doesn't unescape things again, but fails if they are not escaped -.-
+  */
 case class RollAsAPI(formula: RollExpression[Int]) extends Renderable {
   override def render: String = s"&#13;/roll ${escapedFormula}";
 

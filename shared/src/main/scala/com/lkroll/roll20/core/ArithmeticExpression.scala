@@ -57,11 +57,14 @@ object Arith {
 
   case class Parenthesised[T: Numeric](expr: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
     def render: String = s"(${expr.render})";
-    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] = Parenthesised(expr.transformForAccess(f));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): ArithmeticExpression[T] = Parenthesised(expr.replaceQuery(replacement));
+    override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
+      Parenthesised(expr.transformForAccess(f));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): ArithmeticExpression[T] =
+      Parenthesised(expr.replaceQuery(replacement));
   }
 
-  case class PlusExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
+  case class PlusExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T])
+      extends ArithmeticExpression[T] {
     def render: String = s"${left.render}+${right.render}";
     override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
       PlusExpr(left.transformForAccess(f), right.transformForAccess(f));
@@ -69,7 +72,8 @@ object Arith {
       PlusExpr(left.replaceQuery(replacement), right.replaceQuery(replacement));
   }
 
-  case class MinusExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
+  case class MinusExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T])
+      extends ArithmeticExpression[T] {
     def render: String = s"${left.render}-${right.render}";
     override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
       MinusExpr(left.transformForAccess(f), right.transformForAccess(f));
@@ -77,7 +81,8 @@ object Arith {
       MinusExpr(left.replaceQuery(replacement), right.replaceQuery(replacement));
   }
 
-  case class DivExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
+  case class DivExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T])
+      extends ArithmeticExpression[T] {
     def render: String = s"${left.render}/${right.render}";
     override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
       DivExpr(left.transformForAccess(f), right.transformForAccess(f));
@@ -85,7 +90,8 @@ object Arith {
       DivExpr(left.replaceQuery(replacement), right.replaceQuery(replacement));
   }
 
-  case class MultExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
+  case class MultExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T])
+      extends ArithmeticExpression[T] {
     def render: String = s"${left.render}*${right.render}";
     override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
       MultExpr(left.transformForAccess(f), right.transformForAccess(f));
@@ -93,7 +99,8 @@ object Arith {
       MultExpr(left.replaceQuery(replacement), right.replaceQuery(replacement));
   }
 
-  case class ModExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T]) extends ArithmeticExpression[T] {
+  case class ModExpr[T: Numeric](left: ArithmeticExpression[T], right: ArithmeticExpression[T])
+      extends ArithmeticExpression[T] {
     def render: String = s"${left.render}%${right.render}";
     override def transformForAccess(f: AccessTransformer): ArithmeticExpression[T] =
       ModExpr(left.transformForAccess(f), right.transformForAccess(f));
@@ -101,7 +108,8 @@ object Arith {
       ModExpr(left.replaceQuery(replacement), right.replaceQuery(replacement));
   }
 
-  case class RoundingExpr[T: Numeric](function: RoundingFunction, expr: ArithmeticExpression[T]) extends ArithmeticExpression[Int] {
+  case class RoundingExpr[T: Numeric](function: RoundingFunction, expr: ArithmeticExpression[T])
+      extends ArithmeticExpression[Int] {
     def render: String = s"${function.name}(${expr.render})";
     override def transformForAccess(f: AccessTransformer): ArithmeticExpression[Int] =
       RoundingExpr(function, expr.transformForAccess(f));

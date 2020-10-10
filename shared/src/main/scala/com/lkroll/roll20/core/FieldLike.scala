@@ -19,12 +19,14 @@ trait FieldLike[T] {
   lazy val isMax: Boolean = attr.endsWith("_max");
 
   def expr(implicit labelFields: LabelFields): AutocalcExpression[T] = CoreImplicits.fieldToAutoMaybeLabel(this);
-  def arith()(implicit n: Numeric[T], labelFields: LabelFields): ArithmeticExpression[T] = CoreImplicits.autoToArith(this.expr);
+  def arith()(implicit n: Numeric[T], labelFields: LabelFields): ArithmeticExpression[T] =
+    CoreImplicits.autoToArith(this.expr);
 
   /*
    * Compare fields by attr
    */
   def canEqual(that: Any) = that.isInstanceOf[FieldLike[_]];
   override def hashCode(): Int = qualifiedAttr.hashCode();
-  override def equals(that: Any): Boolean = canEqual(that) && (that.asInstanceOf[FieldLike[_]].qualifiedAttr == this.qualifiedAttr);
+  override def equals(that: Any): Boolean =
+    canEqual(that) && (that.asInstanceOf[FieldLike[_]].qualifiedAttr == this.qualifiedAttr);
 }

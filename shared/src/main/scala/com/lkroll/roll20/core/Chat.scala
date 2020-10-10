@@ -120,7 +120,8 @@ object Chat {
     def apiType: Option[ChatType.ChatType] = Some(ChatType.general);
   }
 
-  final case class SpecialEffects(`type`: String, colour: String, sourceId: String, targetId: Option[String] = None) extends ChatCommand {
+  final case class SpecialEffects(`type`: String, colour: String, sourceId: String, targetId: Option[String] = None)
+      extends ChatCommand {
     override def render: String = targetId match {
       case Some(tid) => "/fx ${type}-${colour} ${sourceId} ${tid}";
       case None      => "/fx ${type}-${colour} ${sourceId}";
