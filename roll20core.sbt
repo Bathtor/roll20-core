@@ -5,10 +5,10 @@ name := "Roll20 Core Root"
 
 organization in ThisBuild := "com.lkroll.roll20"
 
-version in ThisBuild := "0.13.1"
+version in ThisBuild := "0.13.2"
 
-scalaVersion in ThisBuild := "2.12.11"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+scalaVersion in ThisBuild := "2.13.5"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.13", "2.13.5")
 
 resolvers += "Apache" at "https://repo.maven.apache.org/maven2"
 resolvers += Resolver.bintrayRepo("lkrollcom", "maven")
@@ -24,7 +24,7 @@ lazy val root = project.in(file(".")).
 lazy val roll20Core = crossProject(JSPlatform, JVMPlatform).in(file(".")).
   settings(
     name := "Roll20 Core",
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.0" % "test",
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.5" % "test",
   ).
   jvmSettings(
     // Add JVM-specific settings here
