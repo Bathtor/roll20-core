@@ -5,7 +5,7 @@ ThisBuild / name := "Roll20 Core Root"
 
 ThisBuild / organization := "com.lkroll"
 
-ThisBuild / version := "0.13.3"
+ThisBuild / version := "0.13.4-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.5"
 ThisBuild / crossScalaVersions := Seq("2.11.12", "2.12.13", "2.13.5")
