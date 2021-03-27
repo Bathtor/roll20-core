@@ -22,33 +22,29 @@
  * SOFTWARE.
  *
  */
-package com.lkroll.roll20.core
 
-trait RollQuery[T] extends Renderable {
-  def name: String;
-  def expr(implicit ev: T =:= Int) = RollExprs.WithIntQuery(this.asInstanceOf[RollQuery[Int]]);
-  def arith(implicit ev: T =:= Int) = Arith.RollArith(expr(ev));
-  def param(implicit ev: T =:= Int) = DiceParams.QueryParameter(this.asInstanceOf[RollQuery[Int]]);
-}
+package com.lkroll.roll20.util
 
-case class InputQuery[T](name: String, defaultValue: Option[T]) extends RollQuery[T] {
-  override def render: String = defaultValue match {
-    case Some(default) => s"?{$name|$default}";
-    case None          => s"?{$name}";
-  };
-}
+import scala.collection.mutable._
 
-case class SelectQuery[T](name: String, options: Seq[T]) extends RollQuery[T] {
-  override def render: String = s"?{Select $name|${options.mkString("|")}}";
-}
+trait ListMultiMap[A, B] extends Map[A, MutableList[B]] {
 
-case class LabelledSelectQuery[T](name: String, options: Seq[(String, T)]) extends RollQuery[T] {
-  lazy val stringOptions = options
-    .map {
-      case (l, t) => s"$l,$t"
+  protected def makeSeq: MutableList[B] = new MutableList[B];
+
+  def addBinding(key: A, value: B): this.type = {
+    get(key) match {
+      case None =>
+        val seq = makeSeq
+        seq += value
+        this(key) = seq
+      case Some(seq) =>
+        seq += value
     }
-    .mkString("|");
-  override def render: String = s"?{Select $name|$stringOptions}";
-}
+    this
+  }
 
-case class QueryReplacer[+T](name: String, value: T)
+  def entryExists(key: A, p: B => Boolean): Boolean = get(key) match {
+    case None      => false
+    case Some(set) => set exists p
+  }
+}

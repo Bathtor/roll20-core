@@ -75,4 +75,3 @@ object PrimitiveStringSerialisers extends PrimitiveStringSerialisers {
   }
 
 }
-

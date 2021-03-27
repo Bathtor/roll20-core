@@ -28,8 +28,8 @@ sealed trait DiceExpression extends Renderable {
   import ComparePoints._;
   import RollModifiers._;
   import DiceExprs._;
-  import RollExprs.{ Dice => RDice, _ };
-  import Arith.{ RollArith => RArith, _ };
+  import RollExprs.{Dice => RDice, _};
+  import Arith.{RollArith => RArith, _};
 
   def ++(mod: RollModifier): IntRollExpression = RollExprs.WithMods(this, mod);
 
@@ -65,11 +65,16 @@ sealed trait DiceExpression extends Renderable {
   def as[O: Numeric] = this.arith.as[O];
 
   // special version for common case
-  def +(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] = Math(PlusExpr(this.arith, other.arith));
-  def -(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] = Math(MinusExpr(this.arith, other.arith));
-  def /(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] = Math(DivExpr(this.arith, other.arith));
-  def *(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] = Math(MultExpr(this.arith, other.arith));
-  def %(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] = Math(ModExpr(this.arith, other.arith));
+  def +(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] =
+    Math(PlusExpr(this.arith, other.arith));
+  def -(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] =
+    Math(MinusExpr(this.arith, other.arith));
+  def /(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] =
+    Math(DivExpr(this.arith, other.arith));
+  def *(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] =
+    Math(MultExpr(this.arith, other.arith));
+  def %(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] =
+    Math(ModExpr(this.arith, other.arith));
 
 }
 
@@ -78,7 +83,8 @@ object DiceExprs {
   import RollModifiers._
 
   object ELCP {
-    def apply(completer: ComparePoint => IntRollExpression): ModifierLackingCP[IntRollExpression] = new ModifierLackingCP[IntRollExpression](completer);
+    def apply(completer: ComparePoint => IntRollExpression): ModifierLackingCP[IntRollExpression] =
+      new ModifierLackingCP[IntRollExpression](completer);
   }
 
   case class BasicRoll(n: DiceParameter, x: DiceParameter) extends DiceExpression {
@@ -95,8 +101,7 @@ object DiceExprs {
 
 }
 
-sealed trait DiceParameter extends Renderable {
-}
+sealed trait DiceParameter extends Renderable {}
 
 object DiceParams {
 

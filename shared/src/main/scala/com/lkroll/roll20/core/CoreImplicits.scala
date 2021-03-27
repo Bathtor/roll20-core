@@ -51,7 +51,8 @@ trait CoreImplicits {
   implicit def numToExpr[T: Numeric](num: T): ArithmeticExpression[T] = Arith.Literal(num);
   implicit def seqToExpr[T](s: Seq[AutocalcExpression[T]]): AutocalcExpression[T] = AutocalcExprs.SeqExpr(s);
   //implicit def fieldToAutoNoLabel[T](f: FieldLike[T]): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, false);
-  implicit def fieldToAutoMaybeLabel[T](f: FieldLike[T])(implicit labelFields: LabelFields): AutocalcExpression[T] = AutocalcExprs.FieldAccess(f, labelFields.value);
+  implicit def fieldToAutoMaybeLabel[T](f: FieldLike[T])(implicit labelFields: LabelFields): AutocalcExpression[T] =
+    AutocalcExprs.FieldAccess(f, labelFields.value);
 
   implicit class StringExt(s: String) {
     def msg: ChatOutMessage = SimpleMessage(s);
@@ -71,7 +72,8 @@ trait CoreImplicits {
   }
   implicit def modLackCPToDefault[Out](mlcp: RollModifiers.ModifierLackingCP[Out]): Out = mlcp(ComparePoints.DefaultCP);
   implicit def diceToRoll(dice: DiceExpression): RollExprs.Dice = RollExprs.Dice(dice);
-  implicit def arithToAuto[T: Numeric](expr: ArithmeticExpression[T]): AutocalcExpression[T] = AutocalcExprs.Arithmetic(expr);
+  implicit def arithToAuto[T: Numeric](expr: ArithmeticExpression[T]): AutocalcExpression[T] =
+    AutocalcExprs.Arithmetic(expr);
   implicit def autoToArith[T: Numeric](expr: AutocalcExpression[T]): ArithmeticExpression[T] = Arith.AutoArith(expr);
   //implicit def fieldToArith[T: Numeric](f: FieldLike[T]): ArithmeticExpression[T] = fieldToExpr(f);
   //implicit def rollToArith(roll: RollExpression): RollExprs.Arith = RollExprs.Arith(roll);

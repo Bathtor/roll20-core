@@ -86,14 +86,21 @@ object AutocalcExprs {
         raw
       }
     }
-    def labelExtension: String = if (labelled) { s"[${field.attr.replace("_", " ")}]" } else { "" };
+    def labelExtension: String =
+      if (labelled) {
+        s"[${field.attr.replace("_", " ")}]"
+      } else {
+        ""
+      };
     def withLabelled(b: Boolean): FieldAccessVariant[T];
 
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] = this; // field access have no subexpressions
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] =
+      this; // field access have no subexpressions
     override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] = f(this);
   }
 
-  case class FieldAccess[T](field: FieldLike[T], labelled: Boolean, ctx: AccessContext = LocalAccess) extends FieldAccessVariant[T] {
+  case class FieldAccess[T](field: FieldLike[T], labelled: Boolean, ctx: AccessContext = LocalAccess)
+      extends FieldAccessVariant[T] {
     override def render: String = s"@{$access}" + labelExtension;
     override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] = FieldAccess(field, labelled, newCtx);
     override def withLabelled(b: Boolean): FieldAccessVariant[T] = FieldAccess(field, b, ctx);
@@ -103,30 +110,44 @@ object AutocalcExprs {
     def character(characterName: String) = CharacterAttributeAccess(field, characterName, labelled);
   }
 
-  case class TargetedAttributeAccess[T](field: FieldLike[T], target: Option[String], labelled: Boolean, ctx: AccessContext = LocalAccess) extends FieldAccessVariant[T] {
+  case class TargetedAttributeAccess[T](field: FieldLike[T],
+                                        target: Option[String],
+                                        labelled: Boolean,
+                                        ctx: AccessContext = LocalAccess)
+      extends FieldAccessVariant[T] {
     override def render: String = target match {
       case Some(t) => s"@{target|${t}|$access}" + labelExtension
       case None    => s"@{target|$access}" + labelExtension
     }
-    override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] = TargetedAttributeAccess(field, target, labelled, newCtx);
+    override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] =
+      TargetedAttributeAccess(field, target, labelled, newCtx);
     override def withLabelled(b: Boolean): FieldAccessVariant[T] = TargetedAttributeAccess(field, target, b, ctx);
   }
 
-  case class SelectedAttributeAccess[T](field: FieldLike[T], labelled: Boolean, ctx: AccessContext = LocalAccess) extends FieldAccessVariant[T] {
+  case class SelectedAttributeAccess[T](field: FieldLike[T], labelled: Boolean, ctx: AccessContext = LocalAccess)
+      extends FieldAccessVariant[T] {
     override def render: String = s"@{selected|$access}" + labelExtension;
-    override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] = SelectedAttributeAccess(field, labelled, newCtx);
+    override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] =
+      SelectedAttributeAccess(field, labelled, newCtx);
     override def withLabelled(b: Boolean): FieldAccessVariant[T] = SelectedAttributeAccess(field, b, ctx);
   }
 
-  case class CharacterAttributeAccess[T](field: FieldLike[T], characterName: String, labelled: Boolean, ctx: AccessContext = LocalAccess) extends FieldAccessVariant[T] {
+  case class CharacterAttributeAccess[T](field: FieldLike[T],
+                                         characterName: String,
+                                         labelled: Boolean,
+                                         ctx: AccessContext = LocalAccess)
+      extends FieldAccessVariant[T] {
     override def render: String = s"@{${characterName}|$access}" + labelExtension;
-    override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] = CharacterAttributeAccess(field, characterName, labelled, newCtx);
-    override def withLabelled(b: Boolean): FieldAccessVariant[T] = CharacterAttributeAccess(field, characterName, b, ctx);
+    override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] =
+      CharacterAttributeAccess(field, characterName, labelled, newCtx);
+    override def withLabelled(b: Boolean): FieldAccessVariant[T] =
+      CharacterAttributeAccess(field, characterName, b, ctx);
   }
 
   sealed trait AbilityAccessVariant[T] extends AutocalcExpression[T] {
     def name: String;
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] = this; // ability access have no subexpressions
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] =
+      this; // ability access have no subexpressions
   }
 
   case class Ability[T](name: String) extends AbilityAccessVariant[T] {
@@ -163,14 +184,18 @@ object AutocalcExprs {
 
   case class Cast[I, O](expr: AutocalcExpression[I]) extends AutocalcExpression[O] {
     override def render: String = expr.render;
-    override def transformForAccess(f: AccessTransformer): AutocalcExpression[O] = Cast[I, O](expr.transformForAccess(f));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[O] = Cast[I, O](expr.replaceQuery(replacement));
+    override def transformForAccess(f: AccessTransformer): AutocalcExpression[O] =
+      Cast[I, O](expr.transformForAccess(f));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[O] =
+      Cast[I, O](expr.replaceQuery(replacement));
   }
 
   case class Arithmetic[T](expr: ArithmeticExpression[T]) extends AutocalcExpression[T] {
     override def render: String = expr.render;
-    override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] = Arithmetic(expr.transformForAccess(f));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] = Arithmetic(expr.replaceQuery(replacement));
+    override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] =
+      Arithmetic(expr.transformForAccess(f));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] =
+      Arithmetic(expr.replaceQuery(replacement));
   }
 
   case class Macro[T](name: String) extends AutocalcExpression[T] {
@@ -181,16 +206,20 @@ object AutocalcExprs {
 
   case class NativeExpr[T](expr: String) extends AutocalcExpression[T] {
     override def render: String = expr;
-    override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] = ???; // Can't guarantee that this will work
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] = ???; // Can't guarantee that this will work
+    override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] =
+      ???; // Can't guarantee that this will work
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] =
+      ???; // Can't guarantee that this will work
   }
 
   def native[T](s: String) = NativeExpr[T](s);
 
   case class SeqExpr[T](exprs: Seq[AutocalcExpression[T]]) extends AutocalcExpression[T] {
     override def render: String = exprs.map(_.render).mkString;
-    override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] = SeqExpr(exprs.map(_.transformForAccess(f)));
-    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] = SeqExpr(exprs.map(_.replaceQuery(replacement)));
+    override def transformForAccess(f: AccessTransformer): AutocalcExpression[T] =
+      SeqExpr(exprs.map(_.transformForAccess(f)));
+    override def replaceQuery[QT](replacement: QueryReplacer[QT]): AutocalcExpression[T] =
+      SeqExpr(exprs.map(_.replaceQuery(replacement)));
   }
 
   def exprs[T](expressions: AutocalcExpression[T]*) = SeqExpr(expressions);
