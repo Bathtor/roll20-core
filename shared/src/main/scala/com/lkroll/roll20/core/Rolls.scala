@@ -258,8 +258,8 @@ object Rolls {
 
   case class APIRoll(command: String,
                      args: List[(String, Renderable)] = List.empty,
-                     trailing: Option[Renderable] = None)
-      extends Roll {
+                     trailing: Option[Renderable] = None
+  ) extends Roll {
     import APIRoll.quot;
     override type RollType = APIRoll;
 
@@ -444,8 +444,7 @@ object APIButton {
   }
 }
 
-/**
-  * Note that this doesn't really work at the moment, as the template doesn't unescape things again, but fails if they are not escaped -.-
+/** Note that this doesn't really work at the moment, as the template doesn't unescape things again, but fails if they are not escaped -.-
   */
 case class RollAsAPI(formula: RollExpression[Int]) extends Renderable {
   override def render: String = s"&#13;/roll ${escapedFormula}";

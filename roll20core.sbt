@@ -25,7 +25,7 @@ publishMavenStyle := true
 // Add sonatype repository settings
 sonatypeCredentialHost := "s01.oss.sonatype.org"
 sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
-publishTo := sonatypePublishToBundle.value
+ThisBuild / publishTo := sonatypePublishToBundle.value
 
 lazy val root = project.in(file("."))
   .aggregate(roll20CoreJS, roll20CoreJVM)

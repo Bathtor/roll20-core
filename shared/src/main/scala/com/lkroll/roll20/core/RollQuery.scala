@@ -44,8 +44,8 @@ case class SelectQuery[T](name: String, options: Seq[T]) extends RollQuery[T] {
 
 case class LabelledSelectQuery[T](name: String, options: Seq[(String, T)]) extends RollQuery[T] {
   lazy val stringOptions = options
-    .map {
-      case (l, t) => s"$l,$t"
+    .map { case (l, t) =>
+      s"$l,$t"
     }
     .mkString("|");
   override def render: String = s"?{Select $name|$stringOptions}";

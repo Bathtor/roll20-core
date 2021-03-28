@@ -113,8 +113,8 @@ object AutocalcExprs {
   case class TargetedAttributeAccess[T](field: FieldLike[T],
                                         target: Option[String],
                                         labelled: Boolean,
-                                        ctx: AccessContext = LocalAccess)
-      extends FieldAccessVariant[T] {
+                                        ctx: AccessContext = LocalAccess
+  ) extends FieldAccessVariant[T] {
     override def render: String = target match {
       case Some(t) => s"@{target|${t}|$access}" + labelExtension
       case None    => s"@{target|$access}" + labelExtension
@@ -135,8 +135,8 @@ object AutocalcExprs {
   case class CharacterAttributeAccess[T](field: FieldLike[T],
                                          characterName: String,
                                          labelled: Boolean,
-                                         ctx: AccessContext = LocalAccess)
-      extends FieldAccessVariant[T] {
+                                         ctx: AccessContext = LocalAccess
+  ) extends FieldAccessVariant[T] {
     override def render: String = s"@{${characterName}|$access}" + labelExtension;
     override def replaceContext(newCtx: AccessContext): FieldAccessVariant[T] =
       CharacterAttributeAccess(field, characterName, labelled, newCtx);
