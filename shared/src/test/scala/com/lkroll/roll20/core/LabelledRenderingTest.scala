@@ -10,12 +10,12 @@ class LabelledRenderingTest extends AnyFunSuite with Matchers {
   test("CoreImplicitsLabelFields should render fields labelled") {
     import CoreImplicitsLabelFields._;
     val expr: AutocalcExpression[Int] = testField;
-    expr.render should be ("@{test_field}[test field]");
+    expr.render should be("@{test_field}[test field]");
   }
 
   test("CoreImplicitsExplicitLabels should render fields unlabelled") {
     import CoreImplicitsExplicitLabels._;
     val expr: AutocalcExpression[Int] = testField;
-    expr.render should be ("@{test_field}");
+    expr.render should be("@{test_field}");
   }
 }
