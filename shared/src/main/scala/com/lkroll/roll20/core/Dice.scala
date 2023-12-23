@@ -30,12 +30,13 @@ sealed trait DiceExpression extends Renderable {
   import DiceExprs._;
   import RollExprs.{Dice => RDice, _};
   import Arith.{RollArith => RArith, _};
+  import AccessTransformation.AccessTransformer;
 
   def ++(mod: RollModifier): IntRollExpression = RollExprs.WithMods(this, mod);
 
-  def <(target: Int): IntRollExpression = this ++ TargetRoll(LeqCP(target));
-  def >(target: Int): IntRollExpression = this ++ TargetRoll(GeqCP(target));
-  def `=`(target: Int): IntRollExpression = this ++ TargetRoll(EqualCP(target));
+  def <(target: Int): IntRollExpression = this ++ TargetRoll(LeqCP(Left(target)));
+  def >(target: Int): IntRollExpression = this ++ TargetRoll(GeqCP(Left(target)));
+  def `=`(target: Int): IntRollExpression = this ++ TargetRoll(EqualCP(Left(target)));
   def cs(): ModifierLackingCP[IntRollExpression] = ELCP(cp => this ++ CriticalSuccess(cp));
   def cf(): ModifierLackingCP[IntRollExpression] = ELCP(cp => this ++ CriticalFailure(cp));
   def f(): ModifierLackingCP[IntRollExpression] = ELCP(cp => this ++ FailuresRoll(cp));
@@ -76,11 +77,12 @@ sealed trait DiceExpression extends Renderable {
   def %(other: FieldLike[Int])(implicit labelFields: LabelFields): RollExpression[Int] =
     Math(ModExpr(this.arith, other.arith));
 
+  def transformForAccess(f: AccessTransformer): DiceExpression;
 }
 
 object DiceExprs {
-
   import RollModifiers._
+  import AccessTransformation.AccessTransformer;
 
   object ELCP {
     def apply(completer: ComparePoint => IntRollExpression): ModifierLackingCP[IntRollExpression] =
@@ -88,37 +90,66 @@ object DiceExprs {
   }
 
   case class BasicRoll(n: DiceParameter, x: DiceParameter) extends DiceExpression {
-    override def render: String = s"(${n.render})d(${x.render})";
+    override def render: String = {
+      val numberOfDice = n match {
+        case DiceParams.ArithmeticParameter(Arith.Literal(num)) => num.toString
+        case _                                                  => s"(${n.render})"
+      }
+      val dieSize = x match {
+        case DiceParams.ArithmeticParameter(Arith.Literal(num)) => num.toString
+        case _                                                  => s"(${x.render})"
+      }
+      s"${numberOfDice}d${dieSize}"
+    }
+
+    override def transformForAccess(f: AccessTransformer): DiceExpression =
+      this.copy(n = n.transformForAccess(f), x = x.transformForAccess(f));
   }
 
   case class FateRoll(n: DiceParameter) extends DiceExpression {
     override def render: String = s"(${n.render})dF";
+
+    override def transformForAccess(f: AccessTransformer): DiceExpression =
+      this.copy(n = n.transformForAccess(f));
   }
 
   case class DiceQuery(query: SelectQuery[DiceExpression]) extends DiceExpression {
     override def render: String = query.render;
+
+    override def transformForAccess(f: AccessTransformer): DiceExpression = this;
   }
 
 }
 
-sealed trait DiceParameter extends Renderable {}
+sealed trait DiceParameter extends Renderable {
+  import AccessTransformation.AccessTransformer;
+
+  def transformForAccess(f: AccessTransformer): DiceParameter;
+}
 
 object DiceParams {
+  import AccessTransformation.AccessTransformer;
 
   case class AutocalcParameter(n: AutocalcExpression[Int]) extends DiceParameter {
     lazy val nNoLabel = n.transformForAccess(AccessTransformation.Delabel);
 
     override def render: String = nNoLabel.render;
+
+    override def transformForAccess(f: AccessTransformer): DiceParameter = this.copy(n.transformForAccess(f));
   }
 
   case class ArithmeticParameter(n: ArithmeticExpression[Int]) extends DiceParameter {
     lazy val nNoLabel = n.transformForAccess(AccessTransformation.Delabel);
 
     override def render: String = nNoLabel.render;
+
+    override def transformForAccess(f: AccessTransformer): DiceParameter = this.copy(n.transformForAccess(f));
   }
 
   case class QueryParameter(query: RollQuery[Int]) extends DiceParameter {
     override def render: String = query.render;
+
+    override def transformForAccess(f: AccessTransformer): DiceParameter = this;
   }
 
 }

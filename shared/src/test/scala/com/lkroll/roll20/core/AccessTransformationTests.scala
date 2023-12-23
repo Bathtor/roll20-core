@@ -39,49 +39,74 @@ class AccessTransformationTests extends AnyFunSuite with Matchers {
   test("A simple roll expression should be correctly transformed") {
     val expr = Dice.d100 + testField;
     val selExpr = expr.forSelected();
-    selExpr.render should be("(1)d(100)+@{selected|test_field}");
+    selExpr.render should be("1d100+@{selected|test_field}");
     val tarExpr = expr.forTarget();
-    tarExpr.render should be("(1)d(100)+@{target|test_field}");
+    tarExpr.render should be("1d100+@{target|test_field}");
     val tar2Expr = expr.forTarget("Nerd");
-    tar2Expr.render should be("(1)d(100)+@{target|Nerd|test_field}");
+    tar2Expr.render should be("1d100+@{target|Nerd|test_field}");
     val charExpr = expr.forCharacter("Nerd");
-    charExpr.render should be("(1)d(100)+@{Nerd|test_field}");
+    charExpr.render should be("1d100+@{Nerd|test_field}");
   }
 
   test("A non-trivial roll expression should be correctly transformed") {
     val expr = Dice.d100 + InputQuery("test-modifier", None).arith + testField;
     val selExpr = expr.forSelected();
-    selExpr.render should be("(1)d(100)+?{test-modifier}+@{selected|test_field}");
+    selExpr.render should be("1d100+?{test-modifier}+@{selected|test_field}");
     val tarExpr = expr.forTarget();
-    tarExpr.render should be("(1)d(100)+?{test-modifier}+@{target|test_field}");
+    tarExpr.render should be("1d100+?{test-modifier}+@{target|test_field}");
     val tar2Expr = expr.forTarget("Nerd");
-    tar2Expr.render should be("(1)d(100)+?{test-modifier}+@{target|Nerd|test_field}");
+    tar2Expr.render should be("1d100+?{test-modifier}+@{target|Nerd|test_field}");
     val charExpr = expr.forCharacter("Nerd");
-    charExpr.render should be("(1)d(100)+?{test-modifier}+@{Nerd|test_field}");
+    charExpr.render should be("1d100+?{test-modifier}+@{Nerd|test_field}");
+  }
+
+  test("A field roll expression should be correctly transformed") {
+    val expr =
+      Dice.d10.copy(n = DiceParams.AutocalcParameter(testField)) + InputQuery("test-modifier", None).arith;
+    val selExpr = expr.forSelected();
+    selExpr.render should be("(@{selected|test_field})d10+?{test-modifier}");
+    val tarExpr = expr.forTarget();
+    tarExpr.render should be("(@{target|test_field})d10+?{test-modifier}");
+    val tar2Expr = expr.forTarget("Nerd");
+    tar2Expr.render should be("(@{target|Nerd|test_field})d10+?{test-modifier}");
+    val charExpr = expr.forCharacter("Nerd");
+    charExpr.render should be("(@{Nerd|test_field})d10+?{test-modifier}");
+  }
+
+  test("A critical roll expression should be correctly transformed") {
+    val expr = Dice.d20.cs() > testField;
+    val selExpr = expr.forSelected();
+    selExpr.render should be("1d20cs>@{selected|test_field}");
+    val tarExpr = expr.forTarget();
+    tarExpr.render should be("1d20cs>@{target|test_field}");
+    val tar2Expr = expr.forTarget("Nerd");
+    tar2Expr.render should be("1d20cs>@{target|Nerd|test_field}");
+    val charExpr = expr.forCharacter("Nerd");
+    charExpr.render should be("1d20cs>@{Nerd|test_field}");
   }
 
   test("Another non-trivial roll expression should be correctly transformed") {
     val expr = Dice.d100 + testField + InputQuery("test-modifier", None).arith;
     val selExpr = expr.forSelected();
-    selExpr.render should be("(1)d(100)+@{selected|test_field}+?{test-modifier}");
+    selExpr.render should be("1d100+@{selected|test_field}+?{test-modifier}");
     val tarExpr = expr.forTarget();
-    tarExpr.render should be("(1)d(100)+@{target|test_field}+?{test-modifier}");
+    tarExpr.render should be("1d100+@{target|test_field}+?{test-modifier}");
     val tar2Expr = expr.forTarget("Nerd");
-    tar2Expr.render should be("(1)d(100)+@{target|Nerd|test_field}+?{test-modifier}");
+    tar2Expr.render should be("1d100+@{target|Nerd|test_field}+?{test-modifier}");
     val charExpr = expr.forCharacter("Nerd");
-    charExpr.render should be("(1)d(100)+@{Nerd|test_field}+?{test-modifier}");
+    charExpr.render should be("1d100+@{Nerd|test_field}+?{test-modifier}");
   }
 
   test("A non-trivial roll expression with 2 field accesses should be correctly transformed") {
     val expr = Dice.d100 + testField2 + InputQuery("test-modifier", None).arith + testField;
     val selExpr = expr.forSelected();
-    selExpr.render should be("(1)d(100)+@{selected|another_test_field}+?{test-modifier}+@{selected|test_field}");
+    selExpr.render should be("1d100+@{selected|another_test_field}+?{test-modifier}+@{selected|test_field}");
     val tarExpr = expr.forTarget();
-    tarExpr.render should be("(1)d(100)+@{target|another_test_field}+?{test-modifier}+@{target|test_field}");
+    tarExpr.render should be("1d100+@{target|another_test_field}+?{test-modifier}+@{target|test_field}");
     val tar2Expr = expr.forTarget("Nerd");
-    tar2Expr.render should be("(1)d(100)+@{target|Nerd|another_test_field}+?{test-modifier}+@{target|Nerd|test_field}");
+    tar2Expr.render should be("1d100+@{target|Nerd|another_test_field}+?{test-modifier}+@{target|Nerd|test_field}");
     val charExpr = expr.forCharacter("Nerd");
-    charExpr.render should be("(1)d(100)+@{Nerd|another_test_field}+?{test-modifier}+@{Nerd|test_field}");
+    charExpr.render should be("1d100+@{Nerd|another_test_field}+?{test-modifier}+@{Nerd|test_field}");
   }
 }
 

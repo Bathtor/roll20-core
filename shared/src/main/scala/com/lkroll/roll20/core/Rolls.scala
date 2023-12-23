@@ -66,9 +66,9 @@ sealed trait IntRollExpression extends RollExpression[Int] {
   import AccessTransformation.AccessTransformer;
 
   def ++(mod: RollModifier): IntRollExpression;
-  def <(target: Int): IntRollExpression = this ++ TargetRoll(LeqCP(target));
-  def >(target: Int): IntRollExpression = this ++ TargetRoll(GeqCP(target));
-  def `=`(target: Int): IntRollExpression = this ++ TargetRoll(EqualCP(target));
+  def <(target: Int): IntRollExpression = this ++ TargetRoll(LeqCP(Left(target)));
+  def >(target: Int): IntRollExpression = this ++ TargetRoll(GeqCP(Left(target)));
+  def `=`(target: Int): IntRollExpression = this ++ TargetRoll(EqualCP(Left(target)));
   def cs(): ModifierLackingCP[IntRollExpression] = ELCP(cp => this ++ CriticalSuccess(cp));
   def cf(): ModifierLackingCP[IntRollExpression] = ELCP(cp => this ++ CriticalFailure(cp));
   def f(): ModifierLackingCP[IntRollExpression] = ELCP(cp => this ++ FailuresRoll(cp));
@@ -101,14 +101,16 @@ object RollExprs {
   case class Dice(dice: DiceExpression) extends IntRollExpression {
     override def render: String = dice.render
     override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, mod);
-    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
+      this.copy(dice = dice.transformForAccess(f));
     override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = this;
   }
 
   case class WithMods(dice: DiceExpression, mod: RollModifier) extends IntRollExpression {
     override def render: String = s"${dice.render}${mod.render}";
     override def ++(mod: RollModifier): IntRollExpression = WithMods(dice, this.mod ++ mod);
-    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression = this;
+    override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
+      this.copy(dice = dice.transformForAccess(f), mod = mod.transformForAccess(f));
     override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression = this;
   }
 
@@ -125,7 +127,7 @@ object RollExprs {
     override def render: String = exprs.map(_.render).mkString("{", ",", "}") + mod.render;
     override def ++(mod: RollModifier): IntRollExpression = GroupWithMods(exprs, this.mod ++ mod);
     override protected[core] def transformForAccessIRE(f: AccessTransformer): IntRollExpression =
-      GroupWithMods(exprs.map(_.transformForAccessIRE(f)), mod);
+      GroupWithMods(exprs.map(_.transformForAccessIRE(f)), mod.transformForAccess(f));
     override protected[core] def replaceQueryIRE(replacement: QueryReplacer[Int]): IntRollExpression =
       Group(exprs.map(_.replaceQueryIRE(replacement)));
   }
@@ -282,34 +284,60 @@ object Rolls {
 
 trait TemplateApplication extends Renderable {}
 
-sealed trait ComparePoint extends Renderable {}
+sealed trait ComparePoint extends Renderable {
+  import AccessTransformation.AccessTransformer;
+
+  def transformForAccess(f: AccessTransformer): ComparePoint;
+}
 
 object ComparePoints {
+  import AccessTransformation.AccessTransformer;
+  import AutocalcExprs.FieldAccessVariant;
+
+  implicit val labelFields: LabelFields = ExplicitlyLabelFields;
 
   case object DefaultCP extends ComparePoint {
     override def render: String = "";
+
+    override def transformForAccess(f: AccessTransformer): ComparePoint = this;
   }
-  case class EqualCP(target: Int) extends ComparePoint {
-    override def render: String = s"$target"; // =-sign is optional
+  case class EqualCP(target: Either[Int, FieldAccessVariant[Int]]) extends ComparePoint {
+    override def render: String = target match { // =-sign is optional
+      case Left(i)  => i.toString
+      case Right(f) => f.render
+    }
+
+    override def transformForAccess(f: AccessTransformer): ComparePoint = this.copy(target.map(f(_)));
   }
-  case class GeqCP(target: Int) extends ComparePoint {
-    override def render: String = s">$target";
+  case class GeqCP(target: Either[Int, FieldAccessVariant[Int]]) extends ComparePoint {
+    override def render: String = target match {
+      case Left(i)  => s">$i"
+      case Right(f) => s">${f.render}"
+    }
+
+    override def transformForAccess(f: AccessTransformer): ComparePoint = this.copy(target.map(f(_)));
   }
-  case class LeqCP(target: Int) extends ComparePoint {
-    override def render: String = s"<$target";
+  case class LeqCP(target: Either[Int, FieldAccessVariant[Int]]) extends ComparePoint {
+    override def render: String = target match {
+      case Left(i)  => s"<$i"
+      case Right(f) => s"<${f.render}"
+    }
+
+    override def transformForAccess(f: AccessTransformer): ComparePoint = this.copy(target.map(f(_)));
   }
 }
 
 // TODO roll templates
 
 sealed trait RollModifier extends Renderable {
-  import ComparePoints._
-  import RollModifiers._
+  import ComparePoints._;
+  import RollModifiers._;
+  import AccessTransformation._;
 
   def ++(mod: RollModifier): RollModifier = ModifierSeq(Seq(this, mod));
-  def <(target: Int): RollModifier = this ++ TargetRoll(LeqCP(target));
-  def >(target: Int): RollModifier = this ++ TargetRoll(GeqCP(target));
-  def `=`(target: Int): RollModifier = this ++ TargetRoll(EqualCP(target));
+  def <(target: Int): RollModifier = this ++ TargetRoll(LeqCP(Left(target)));
+  def >(target: Int): RollModifier = this ++ TargetRoll(GeqCP(Left(target)));
+  def `=`(target: Int): RollModifier = this ++ TargetRoll(EqualCP(Left(target)));
   def cs(): ModifierLackingCP[RollModifier] = MLCP(cp => this ++ CriticalSuccess(cp));
   def cf(): ModifierLackingCP[RollModifier] = MLCP(cp => this ++ CriticalFailure(cp));
   def f(): ModifierLackingCP[RollModifier] = MLCP(cp => this ++ FailuresRoll(cp));
@@ -325,18 +353,25 @@ sealed trait RollModifier extends Renderable {
   def s(): RollModifier = this ++ SortAscRoll;
   def sa(): RollModifier = this ++ SortAscRoll;
   def sd(): RollModifier = this ++ SortDescRoll;
+
+  def transformForAccess(f: AccessTransformer): RollModifier;
 }
 
 object RollModifiers {
 
   import ComparePoints._
+  import AccessTransformation.AccessTransformer;
 
   class ModifierLackingCP[Out](val completer: ComparePoint => Out) {
 
-    def <(target: Int): Out = completer(LeqCP(target));
-    def >(target: Int): Out = completer(GeqCP(target));
-    def `=`(target: Int): Out = completer(EqualCP(target));
-    def apply(target: Int): Out = completer(EqualCP(target));
+    def <(target: Int): Out = completer(LeqCP(Left(target)));
+    def >(target: Int): Out = completer(GeqCP(Left(target)));
+    def `=`(target: Int): Out = completer(EqualCP(Left(target)));
+    def <(target: FieldLike[Int]): Out = completer(LeqCP(Right(AutocalcExprs.FieldAccess(target, false))));
+    def >(target: FieldLike[Int]): Out = completer(GeqCP(Right(AutocalcExprs.FieldAccess(target, false))));
+    def `=`(target: FieldLike[Int]): Out = completer(EqualCP(Right(AutocalcExprs.FieldAccess(target, false))));
+    def apply(target: Int): Out = completer(EqualCP(Left(target)));
+    def apply(target: FieldLike[Int]): Out = completer(EqualCP(Right(AutocalcExprs.FieldAccess(target, false))));
     def apply(cp: ComparePoint): Out = completer(cp);
   }
 
@@ -347,67 +382,100 @@ object RollModifiers {
 
   case class TargetRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class CriticalSuccess(cp: ComparePoint) extends RollModifier {
     override def render: String = s"cs${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class CriticalFailure(cp: ComparePoint) extends RollModifier {
     override def render: String = s"cf${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class FailuresRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"f${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class ExplodingRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"!${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class CompoundingRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"!!${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class PenetratingRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"!p${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class KeepHighestRoll(n: Int) extends RollModifier {
     override def render: String = s"kh$n";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this;
   }
 
   case class KeepLowestRoll(n: Int) extends RollModifier {
     override def render: String = s"kl$n";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this;
   }
 
   case class DropHighestRoll(n: Int) extends RollModifier {
     override def render: String = s"dh$n";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this;
   }
 
   case class DropLowestRoll(n: Int) extends RollModifier {
     override def render: String = s"dl$n";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this;
   }
 
   case class RerollRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"r${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case class RerollOnceRoll(cp: ComparePoint) extends RollModifier {
     override def render: String = s"ro${cp.render}";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this.copy(cp = cp.transformForAccess(f));
   }
 
   case object SortAscRoll extends RollModifier {
     override def render: String = s"sa";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this;
   }
 
   case object SortDescRoll extends RollModifier {
     override def render: String = s"sd";
+
+    override def transformForAccess(f: AccessTransformer): RollModifier = this;
   }
 
   case class ModifierSeq(mods: Seq[RollModifier]) extends RollModifier {
     override def render: String = s"${mods.map(_.render).mkString}";
     override def ++(mod: RollModifier): RollModifier = ModifierSeq(mods :+ mod);
+
+    override def transformForAccess(f: AccessTransformer): RollModifier =
+      this.copy(mods = mods.map(_.transformForAccess(f)));
   }
 
 }
